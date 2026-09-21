@@ -1,0 +1,5 @@
+# Robots.txt for LabelSure
+User-agent: *
+Allow: /
+Disallow: /profile
+Disallow: /settings

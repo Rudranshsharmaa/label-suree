@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "LabelSure",
+  "version": "1.0.0",
+  "description": "Intelligent Food Packaging Compliance & Nutritional Intelligence Platform",
+  "homepage": "http://localhost:4173",
+  "author": "LabelSure Team",
+  "capabilities": [
+    {
+      "id": "food_classification",
+      "name": "Food vs Non-Food Classification",
+      "description": "Determines whether a scanned item is a food product, non-food item, or uncertain.",
+      "endpoint": "/api/classify"
+    },
+    {
+      "id": "packaging_ocr",
+      "name": "Packaging OCR Field Extraction",
+      "description": "Extracts MRP, dates, batch numbers, net quantity, FSSAI licenses, and nutrition panels from packaging images.",
+      "endpoint": "/api/ocr"
+    },
+    {
+      "id": "compliance_evaluation",
+      "name": "Statutory Compliance Audit",
+      "description": "Evaluates packaging declarations against the Food Safety and Standards Act, 2006 and Legal Metrology Rules, 2011.",
+      "endpoint": "/api/compliance"
+    },
+    {
+      "id": "health_grading",
+      "name": "A+ to F Nutritional Grading",
+      "description": "Calculates health grades based on nutrient profiling thresholds.",
+      "endpoint": "/api/health-grade"
+    }
+  ]
+}

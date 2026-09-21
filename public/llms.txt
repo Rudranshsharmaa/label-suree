@@ -1,0 +1,15 @@
+# LabelSure - Intelligent Food Packaging Compliance Platform
+
+> Automated packaging OCR, regulatory compliance auditing under the Food Safety and Standards Act 2006 & Legal Metrology Rules, and A+ to F nutritional health grading.
+
+## Documentation & Navigation Links
+- [Platform Home](http://localhost:4173/): Food compliance intelligence overview and core workflow.
+- [Multi-Image Scanner](http://localhost:4173/scanner): Packaging photo upload, camera studio, and automated OCR extraction.
+- [Statutory Compliance Audit](http://localhost:4173/compliance-analysis): 5-way compliance verification against FSS Act 2006 and Legal Metrology.
+- [Nutritional Health Grading](http://localhost:4173/health-analysis): A+ to F dietary quality scoring model and nutrient breakdown.
+- [12-Month User Scan History](http://localhost:4173/history): Dynamic rolling 12-month user-scoped scan records.
+- [AI Capabilities Catalog](http://localhost:4173/ai-catalog.json): Machine-readable tools and API manifest.
+
+## Optional / Extended Documentation
+- [Full Regulatory Guidelines](http://localhost:4173/compliance-analysis): FSSAI Labelling and Packaging Regulations 2020.
+- [Grading Methodology](http://localhost:4173/health-analysis): Nutrient thresholds and profiling algorithm.

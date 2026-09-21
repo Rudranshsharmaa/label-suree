@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #F5F3EA;
+    --bg-surface: #FAF9F5;
+    --bg-card: #FFFFFF;
+    --color-dark-green: #123C2A;
+    --color-deep-green: #0B291D;
+    --color-medium-green: #2E6847;
+    --color-light-green: #DCE8D8;
+    --text-main: #17231C;
+    --text-muted: #47544C;
+  }
+
+  body {
+    background-color: #F5F3EA;
+    color: #17231C;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-display: swap;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Accessible focus rings */
+  :focus-visible {
+    outline: 2px solid #123C2A;
+    outline-offset: 2px;
+  }
+}
+
+/* Subtle Organic Grain & Texture effect */
+.subtle-grain {
+  background-image: radial-gradient(rgba(18, 60, 42, 0.03) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Accessible clean custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #E9E8DC;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #123C2A;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0B291D;
+}
+
+/* Print styling for audit reports */
+@media print {
+  body {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-break-inside-avoid {
+    break-inside: avoid;
+  }
+}
