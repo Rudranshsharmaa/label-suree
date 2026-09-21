@@ -1,0 +1,11 @@
+fastapi>=0.115.0
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+sqlalchemy>=2.0.30
+slowapi>=0.1.9
+bcrypt>=4.0.0
+PyJWT>=2.9.0
+python-multipart>=0.0.12
+pillow>=10.4.0
+requests>=2.32.0
+uvicorn>=0.30.0

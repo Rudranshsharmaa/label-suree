@@ -38,12 +38,19 @@ class Settings(BaseSettings):
         "http://localhost:4173",
         "http://127.0.0.1:4173",
         "http://localhost:3000",
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:3000",
+        "https://label-sure-five.vercel.app"
     ]
     
-    # Storage & SQLite
-    DATABASE_URL: str = "sqlite:///./backend/data/labelsure_secure.db"
-    UPLOAD_DIR: str = "./backend/uploads"
+    # Storage & SQLite (Auto-detect serverless /tmp environment)
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        "sqlite:////tmp/labelsure_secure.db" if (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")) else "sqlite:///./backend/data/labelsure_secure.db"
+    )
+    UPLOAD_DIR: str = os.getenv(
+        "UPLOAD_DIR",
+        "/tmp/uploads" if (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")) else "./backend/uploads"
+    )
     MAX_UPLOAD_SIZE_BYTES: int = 15 * 1024 * 1024  # 15 MB
     MAX_IMAGE_DIMENSION: int = 4096
 
