@@ -26,11 +26,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Hardened Content Security Policy
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "img-src 'self' data: blob:; "
-            "style-src 'self' 'unsafe-inline'; "
-            "script-src 'self'; "
-            "connect-src 'self' http://localhost:8000 http://127.0.0.1:8000 https://api.labelsure.io; "
-            "font-src 'self'; "
+            "img-src 'self' data: blob: https://fastapi.tiangolo.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "connect-src 'self' http://localhost:8000 http://127.0.0.1:8000 https://label-sure-five.vercel.app https://*.vercel.app; "
+            "font-src 'self' https://fonts.gstatic.com; "
             "frame-ancestors 'none'; "
             "object-src 'none'; "
             "base-uri 'self'; "

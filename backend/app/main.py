@@ -17,14 +17,18 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    docs_url="/docs" if settings.APP_ENV != "production" else None,
-    openapi_url="/openapi.json" if settings.APP_ENV != "production" else None,
+    docs_url="/docs",
+    openapi_url="/openapi.json",
     redoc_url=None
 )
 
 @app.get("/api/docs", include_in_schema=False)
 def api_docs_alias():
     return RedirectResponse(url="/docs")
+
+@app.get("/api/openapi.json", include_in_schema=False)
+def api_openapi_alias():
+    return RedirectResponse(url="/openapi.json")
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -52,6 +56,8 @@ app.include_router(upload_routes.router, prefix="/api/v1")
 app.include_router(scan_routes.router, prefix="/api/v1")
 app.include_router(analyze_routes.router, prefix="/api/v1")
 
+@app.get("/health", tags=["Health"], include_in_schema=False)
+@app.get("/api/health", tags=["Health"], include_in_schema=False)
 @app.get("/api/v1/health", tags=["Health"])
 def health_check():
     return {
