@@ -1,9 +1,66 @@
+# ==========================================
+# LabelSure Git Ignore Configuration
+# ==========================================
+
+# 1. Environment & Secrets (NEVER COMMIT)
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+
+# 2. Database & Data Stores (Local SQLite & runtime locks)
+backend/data/*.db
+backend/data/*.db-shm
+backend/data/*.db-wal
+backend/data/*.sqlite
+backend/data/*.sqlite3
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# 3. User Uploads & Runtime Images
+backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/data/.gitkeep
+
+# 4. Node.js & Frontend Build Outputs
 node_modules/
 dist/
+dist-ssr/
+*.local
+.npm/
+.eslintcache
+
+# 5. Python Virtual Environments & Caches
 .venv/
 backend/.venv/
-.env
-backend/.env
+env/
+venv/
+ENV/
 __pycache__/
+*.py[cod]
+*$py.class
 .pytest_cache/
-*.pyc
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# 6. IDE, OS & System Metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
