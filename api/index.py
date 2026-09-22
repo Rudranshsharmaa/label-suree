@@ -12,11 +12,13 @@ for path in [CURRENT_DIR, ROOT_DIR, os.getcwd()]:
 
 try:
     from backend.app.main import app
+    handler = app
 except Exception as e:
     from fastapi import FastAPI
     from fastapi.responses import JSONResponse
     
     app = FastAPI(title="LabelSure Diagnostic Handler")
+    handler = app
     err_tb = traceback.format_exc()
     
     @app.api_route("/{path_name:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"])
