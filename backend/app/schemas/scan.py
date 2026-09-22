@@ -3,6 +3,7 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict
 
 class ScanCreateRequest(BaseModel):
+    scan_id: Optional[str] = Field(default=None, max_length=64)
     product_name: str = Field(..., min_length=1, max_length=255)
     brand: Optional[str] = Field(default="", max_length=255)
     category: Optional[str] = Field(default="General Packaged Food", max_length=128)
@@ -10,6 +11,8 @@ class ScanCreateRequest(BaseModel):
     compliance_status: Optional[str] = Field(default="COMPLIANT", max_length=64)
     health_rating: Optional[str] = Field(default="B", max_length=8)
     health_score: Optional[float] = Field(default=70.0, ge=0.0, le=100.0)
+    scan_date: Optional[str] = Field(default=None, max_length=32)
+    scan_time: Optional[str] = Field(default=None, max_length=32)
     data_payload: Dict[str, Any]
     image_paths: Optional[List[str]] = Field(default_factory=list)
 
