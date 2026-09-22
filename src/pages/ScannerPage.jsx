@@ -1,7 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScan } from '../context/ScanContext';
+import { isFoodClassification } from '../services/api';
 import { ResponsiveContainer } from '../components/layout/ResponsiveContainer';
 import { MultiImageUploader } from '../components/scanner/MultiImageUploader';
 import { ScanProgress } from '../components/scanner/ScanProgress';
@@ -34,7 +35,7 @@ export function ScannerPage() {
     if (!user) return;
     try {
       const result = await executeScan(user.id);
-      if (result && result.food_classification === 'FOOD PRODUCT DETECTED') {
+      if (result && isFoodClassification(result.food_classification)) {
         navigate(`/reports/${result.scan_id}`);
       }
     } catch (err) {
@@ -60,12 +61,23 @@ export function ScannerPage() {
 
         {/* Global Error Banner */}
         {error && (
-          <div className="p-4 rounded-2xl bg-[#FBEBEB] border border-[#B94A48]/30 flex items-start gap-3 text-xs text-[#B94A48]">
-            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-bold">Scan Execution Issue</p>
-              <p>{error}</p>
+          <div className="p-4 rounded-2xl bg-[#FBEBEB] border border-[#B94A48]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#B94A48]">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <div className="space-y-1 text-left">
+                <p className="font-bold">Scan Execution Issue</p>
+                <p>{error}</p>
+              </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearAllImages}
+              icon={RotateCcw}
+              className="shrink-0 text-xs text-[#B94A48] border-[#B94A48]/30"
+            >
+              Reset & Try Again
+            </Button>
           </div>
         )}
 

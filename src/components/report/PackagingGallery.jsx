@@ -20,25 +20,29 @@ export function PackagingGallery({ images = [] }) {
       </h3>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-        {images.map((img, idx) => (
-          <div
-            key={idx}
-            className="group relative rounded-2xl overflow-hidden bg-black/5 border border-[#123C2A]/15 shadow-xs aspect-4/3 flex flex-col justify-end p-2 cursor-pointer"
-            onClick={() => setSelectedImage(img.imageUrl || img.url)}
-          >
-            <img
-              src={img.imageUrl || img.url}
-              alt={img.label || img.view || 'Packaging View'}
-              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-            
-            <div className="relative z-10 flex items-center justify-between text-white text-[11px] font-bold">
-              <span className="truncate">{img.label || img.view || 'View'}</span>
-              <Maximize2 className="w-3.5 h-3.5 opacity-80 group-hover:opacity-100" />
+        {images.map((img, idx) => {
+          const src = typeof img === 'string' ? img : (img?.imageUrl || img?.url || img?.previewUrl || '');
+          const label = typeof img === 'string' ? `View ${idx + 1}` : (img?.label || img?.view || `View ${idx + 1}`);
+          return (
+            <div
+              key={idx}
+              className="group relative rounded-2xl overflow-hidden bg-black/5 border border-[#123C2A]/15 shadow-xs aspect-4/3 flex flex-col justify-end p-2 cursor-pointer"
+              onClick={() => setSelectedImage(src)}
+            >
+              <img
+                src={src}
+                alt={label}
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              
+              <div className="relative z-10 flex items-center justify-between text-white text-[11px] font-bold">
+                <span className="truncate">{label}</span>
+                <Maximize2 className="w-3.5 h-3.5 opacity-80 group-hover:opacity-100" />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Modal Zoom */}

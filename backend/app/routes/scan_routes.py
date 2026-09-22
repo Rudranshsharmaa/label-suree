@@ -10,7 +10,7 @@ from backend.app.models.user import User
 from backend.app.models.scan import Scan
 from backend.app.schemas.scan import ScanCreateRequest, ScanResponse, QuotaResponse
 from backend.app.services.upload_service import delete_user_files
-from backend.app.services.quota_service import get_quota_status
+from backend.app.services.quota_service import get_quota_status, check_and_increment_quota
 from backend.app.routes.deps import get_current_user
 
 router = APIRouter(prefix="/scans", tags=["Scans & Reports"])
@@ -22,8 +22,11 @@ def create_scan(
     db: Session = Depends(get_db)
 ):
     """Creates a new packaging scan and compliance audit record strictly scoped to current_user."""
+    # 1. Enforce user & global scan quotas atomically (raises HTTP 429 if exceeded)
+    check_and_increment_quota(db, current_user.id)
+
     now = datetime.utcnow()
-    scan_id = f"SCN-{now.year}-{uuid.uuid4().hex[:6].upper()}"
+    scan_id = payload.scan_id if (payload.scan_id and payload.scan_id.startswith("SCN-")) else f"SCN-{now.year}-{uuid.uuid4().hex[:6].upper()}"
     
     new_scan = Scan(
         scan_id=scan_id,
@@ -35,8 +38,8 @@ def create_scan(
         compliance_status=payload.compliance_status or "COMPLIANT",
         health_rating=payload.health_rating or "B",
         health_score=payload.health_score or 70.0,
-        scan_date=now.strftime("%Y-%m-%d"),
-        scan_time=now.strftime("%H:%M"),
+        scan_date=payload.scan_date or now.strftime("%Y-%m-%d"),
+        scan_time=payload.scan_time or now.strftime("%H:%M"),
         data_payload=json.dumps(payload.data_payload),
         image_paths=json.dumps(payload.image_paths or [])
     )

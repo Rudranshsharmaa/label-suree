@@ -3,15 +3,15 @@ import { Activity, Flame, Wheat, Droplets, ShieldAlert } from 'lucide-react';
 
 export function NutrientBreakdown({ nutritionalData = {}, ingredientsRaw = '' }) {
   const nutrients = [
-    { label: 'Energy / Calories', value: nutritionalData.energyKcal !== null ? `${nutritionalData.energyKcal} kcal` : 'N/A', icon: Flame, color: 'text-[#C78A28]' },
-    { label: 'Protein', value: nutritionalData.proteinG !== null ? `${nutritionalData.proteinG} g` : 'N/A', icon: Activity, color: 'text-[#2E6847]' },
-    { label: 'Carbohydrates', value: nutritionalData.carbohydratesG !== null ? `${nutritionalData.carbohydratesG} g` : 'N/A', icon: Wheat, color: 'text-[#17231C]' },
-    { label: 'Total Sugars', value: nutritionalData.totalSugarG !== null ? `${nutritionalData.totalSugarG} g` : 'N/A', icon: Droplets, color: 'text-[#C78A28]' },
-    { label: 'Added Sugars', value: nutritionalData.addedSugarG !== null ? `${nutritionalData.addedSugarG} g` : '0 g', icon: Droplets, color: 'text-[#B94A48]' },
-    { label: 'Total Fat', value: nutritionalData.fatG !== null ? `${nutritionalData.fatG} g` : 'N/A', icon: Droplets, color: 'text-[#17231C]' },
-    { label: 'Saturated Fat', value: nutritionalData.saturatedFatG !== null ? `${nutritionalData.saturatedFatG} g` : 'N/A', icon: Droplets, color: 'text-[#B94A48]' },
-    { label: 'Sodium', value: nutritionalData.sodiumMg !== null ? `${nutritionalData.sodiumMg} mg` : 'N/A', icon: Droplets, color: 'text-[#C78A28]' },
-    { label: 'Dietary Fibre', value: nutritionalData.dietaryFibreG !== null ? `${nutritionalData.dietaryFibreG} g` : 'N/A', icon: Wheat, color: 'text-[#2E6847]' },
+    { label: 'Energy / Calories', value: (nutritionalData?.energyKcal != null) ? `${nutritionalData.energyKcal} kcal` : 'N/A', icon: Flame, color: 'text-[#C78A28]' },
+    { label: 'Protein', value: (nutritionalData?.proteinG != null) ? `${nutritionalData.proteinG} g` : 'N/A', icon: Activity, color: 'text-[#2E6847]' },
+    { label: 'Carbohydrates', value: (nutritionalData?.carbohydratesG != null) ? `${nutritionalData.carbohydratesG} g` : 'N/A', icon: Wheat, color: 'text-[#17231C]' },
+    { label: 'Total Sugars', value: (nutritionalData?.totalSugarG != null) ? `${nutritionalData.totalSugarG} g` : 'N/A', icon: Droplets, color: 'text-[#C78A28]' },
+    { label: 'Added Sugars', value: (nutritionalData?.addedSugarG != null) ? `${nutritionalData.addedSugarG} g` : '0 g', icon: Droplets, color: 'text-[#B94A48]' },
+    { label: 'Total Fat', value: (nutritionalData?.fatG != null) ? `${nutritionalData.fatG} g` : 'N/A', icon: Droplets, color: 'text-[#17231C]' },
+    { label: 'Saturated Fat', value: (nutritionalData?.saturatedFatG != null) ? `${nutritionalData.saturatedFatG} g` : 'N/A', icon: Droplets, color: 'text-[#B94A48]' },
+    { label: 'Sodium', value: (nutritionalData?.sodiumMg != null) ? `${nutritionalData.sodiumMg} mg` : 'N/A', icon: Droplets, color: 'text-[#C78A28]' },
+    { label: 'Dietary Fibre', value: (nutritionalData?.dietaryFibreG != null) ? `${nutritionalData.dietaryFibreG} g` : 'N/A', icon: Wheat, color: 'text-[#2E6847]' },
   ];
 
   return (

@@ -3,16 +3,18 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ScanProvider } from './context/ScanContext';
 import { AppRoutes } from './routes/AppRoutes';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Navbar } from './components/layout/Navbar';
 import { MobileNavigation } from './components/layout/MobileNavigation';
 import { Footer } from './components/layout/Footer';
 
 export function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ScanProvider>
-          <div className="min-h-screen flex flex-col bg-[#F5F3EA] text-[#17231C]">
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <ScanProvider>
+            <div className="min-h-screen flex flex-col bg-[#F5F3EA] text-[#17231C]">
             {/* Accessible Skip Link */}
             <a
               href="#main-content"
@@ -38,6 +40,7 @@ export function App() {
         </ScanProvider>
       </AuthProvider>
     </BrowserRouter>
+  </ErrorBoundary>
   );
 }
 

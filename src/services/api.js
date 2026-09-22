@@ -38,7 +38,40 @@ export function setCsrfToken(token) {
 }
 
 export function getCsrfToken() {
-  return inMemoryCsrfToken;
+  if (inMemoryCsrfToken) return inMemoryCsrfToken;
+  if (typeof document !== 'undefined' && document.cookie) {
+    const match = document.cookie.match(/(?:^|;\s*)labelsure_csrf_token=([^;]+)/);
+    if (match && match[1]) {
+      try {
+        inMemoryCsrfToken = decodeURIComponent(match[1]);
+        return inMemoryCsrfToken;
+      } catch {
+        return match[1];
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Normalizes user object to ensure both camelCase (fullName) and snake_case (full_name) are always present.
+ */
+export function normalizeUser(user) {
+  if (!user) return null;
+  return {
+    ...user,
+    fullName: user.fullName || user.full_name || '',
+    full_name: user.full_name || user.fullName || '',
+  };
+}
+
+/**
+ * Helper to check if a food_classification string indicates a valid food product.
+ */
+export function isFoodClassification(status) {
+  if (!status) return false;
+  const s = String(status).toUpperCase();
+  return s.includes('FOOD') && !s.includes('NON-FOOD') && !s.includes('UNCERTAIN');
 }
 
 /**
@@ -55,8 +88,9 @@ async function secureFetch(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${inMemoryAccessToken}`;
   }
 
-  if (inMemoryCsrfToken) {
-    headers['X-CSRF-Token'] = inMemoryCsrfToken;
+  const activeCsrf = getCsrfToken();
+  if (activeCsrf) {
+    headers['X-CSRF-Token'] = activeCsrf;
   }
 
   const config = {
@@ -79,11 +113,12 @@ async function secureFetch(endpoint, options = {}) {
   // Silent Refresh on 401 Unauthorized (except on login/signup/refresh endpoints)
   if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/signup') && !endpoint.includes('/auth/refresh')) {
     try {
+      const csrfForRefresh = getCsrfToken();
       const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
-          ...(inMemoryCsrfToken ? { 'X-CSRF-Token': inMemoryCsrfToken } : {}),
+          ...(csrfForRefresh ? { 'X-CSRF-Token': csrfForRefresh } : {}),
         },
         credentials: 'include',
       });
@@ -95,6 +130,7 @@ async function secureFetch(endpoint, options = {}) {
 
         // Retry original request with new access token
         headers['Authorization'] = `Bearer ${refreshData.access_token}`;
+        if (refreshData.csrf_token) headers['X-CSRF-Token'] = refreshData.csrf_token;
         return await fetch(url, { ...config, headers });
       } else {
         setAccessToken(null);
@@ -155,7 +191,7 @@ export const api = {
       const data = await res.json();
       setAccessToken(data.access_token);
       setCsrfToken(data.csrf_token);
-      return data.user;
+      return normalizeUser(data.user);
     },
 
     async signup({ fullName, email, password, role, organization }) {
@@ -179,7 +215,7 @@ export const api = {
         localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
         const { password: _, ...userSafe } = newUser;
         localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(userSafe));
-        return userSafe;
+        return normalizeUser(userSafe);
       }
 
       const res = await secureFetch('/auth/signup', {
@@ -202,13 +238,13 @@ export const api = {
       const data = await res.json();
       setAccessToken(data.access_token);
       setCsrfToken(data.csrf_token);
-      return data.user;
+      return normalizeUser(data.user);
     },
 
     async getCurrentUser() {
       if (IS_DEMO_MODE) {
         const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-        return userStr ? JSON.parse(userStr) : null;
+        return userStr ? normalizeUser(JSON.parse(userStr)) : null;
       }
 
       const res = await secureFetch('/auth/me');
@@ -216,7 +252,7 @@ export const api = {
         return null;
       }
       const data = await res.json();
-      return data.user;
+      return normalizeUser(data.user);
     },
 
     async getQuotaStatus() {

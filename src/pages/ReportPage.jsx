@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
+import { api, isFoodClassification } from '../services/api';
 import { ResponsiveContainer } from '../components/layout/ResponsiveContainer';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { ComplianceCard } from '../components/compliance/ComplianceCard';
@@ -121,7 +121,7 @@ export function ReportPage() {
     );
   }
 
-  const isFood = scan.food_classification === 'FOOD PRODUCT DETECTED';
+  const isFood = isFoodClassification(scan.food_classification);
 
   return (
     <div className="py-8 sm:py-10 space-y-8">
@@ -193,7 +193,7 @@ export function ReportPage() {
                     <Calendar className="w-3.5 h-3.5 text-[#2E6847]" />
                     Audit Date: {scan.scan_date} ({scan.scan_time || '14:30'})
                   </p>
-                  <p>Auditor: {user.fullName} ({user.organization || 'Verified Reviewer'})</p>
+                  <p>Auditor: {user?.fullName || user?.full_name || 'Auditor'} ({user?.organization || 'Verified Reviewer'})</p>
                 </div>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
+import { api, isFoodClassification } from '../services/api';
 import { ResponsiveContainer } from '../components/layout/ResponsiveContainer';
 import { HealthRatingCard } from '../components/health/HealthRatingCard';
 import { NutrientBreakdown } from '../components/health/NutrientBreakdown';
@@ -28,7 +28,7 @@ export function HealthAnalysisPage() {
       try {
         setLoading(true);
         const userScans = await api.scans.getUserScans(user.id);
-        const foodScans = userScans.filter(s => s.food_classification === 'FOOD PRODUCT DETECTED');
+        const foodScans = userScans.filter(s => isFoodClassification(s.food_classification));
         setScans(foodScans);
         if (foodScans.length > 0) {
           setSelectedScanId(foodScans[0].scan_id);
