@@ -61,17 +61,39 @@ export function LandingPage() {
               </Link>
             </div>
 
-            {/* Key Capability Highlights */}
-            <div className="pt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+            {/* Key Capability Highlights / Feature Cards */}
+            <div className="pt-6 sm:pt-8 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5 lg:gap-4 max-w-3xl mx-auto w-full text-left">
               {[
-                { label: 'Food-Only Classifier', desc: 'Automatic non-food gating' },
-                { label: 'Multi-View OCR', desc: 'Front, back, MRP & dates' },
-                { label: 'FSS Act 2006', desc: 'Category-aware rules' },
-                { label: 'A+ to F Grading', desc: 'Nutrient quality index' },
+                { 
+                  label: 'Food-Only Classifier', 
+                  desc: 'Automatic non-food gating',
+                },
+                { 
+                  label: 'Multi-View OCR', 
+                  desc: 'Front, back, MRP & dates',
+                },
+                { 
+                  label: 'FSS Act 2006', 
+                  desc: 'Category-aware rules',
+                },
+                { 
+                  label: 'A+ to F Grading', 
+                  desc: 'Nutrient quality index',
+                },
               ].map((item, idx) => (
-                <div key={idx} className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#123C2A]/10 shadow-xs">
-                  <p className="text-xs font-bold text-[#123C2A]">{item.label}</p>
-                  <p className="text-[11px] text-[#47544C] mt-0.5">{item.desc}</p>
+                <div 
+                  key={idx} 
+                  className="flex items-center gap-3.5 px-4.5 py-3.5 sm:px-5 sm:py-4 rounded-2xl bg-[#EAEFE9] border border-[#2E6847]/20 shadow-xs transition-all duration-200 hover:border-[#2E6847]/40 hover:bg-[#E4ECE3]"
+                >
+                  <Sparkles className="w-5 h-5 text-[#123C2A] shrink-0" aria-hidden="true" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm sm:text-base font-bold text-[#123C2A] tracking-tight leading-tight">
+                      {item.label}
+                    </span>
+                    <span className="text-xs sm:text-[13px] text-[#47544C] mt-0.5 leading-snug">
+                      {item.desc}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
