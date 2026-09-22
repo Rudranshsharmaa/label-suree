@@ -13,7 +13,7 @@ class Scan(Base):
     category = Column(String(128), default="General Packaged Food")
     food_classification = Column(String(64), default="Food Product")
     compliance_status = Column(String(64), default="COMPLIANT")
-    health_rating = Column(String(8), default="B")
+    health_rating = Column(String(64), default="B", nullable=True)
     health_score = Column(Float, default=70.0)
     scan_date = Column(String(10), index=True, nullable=False) # YYYY-MM-DD
     scan_time = Column(String(8), default="00:00")

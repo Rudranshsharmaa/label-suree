@@ -9,7 +9,7 @@ class ScanCreateRequest(BaseModel):
     category: Optional[str] = Field(default="General Packaged Food", max_length=128)
     food_classification: Optional[str] = Field(default="Food Product", max_length=64)
     compliance_status: Optional[str] = Field(default="COMPLIANT", max_length=64)
-    health_rating: Optional[str] = Field(default="B", max_length=8)
+    health_rating: Optional[str] = Field(default="B", max_length=64)
     health_score: Optional[float] = Field(default=70.0, ge=0.0, le=100.0)
     scan_date: Optional[str] = Field(default=None, max_length=32)
     scan_time: Optional[str] = Field(default=None, max_length=32)
@@ -27,7 +27,7 @@ class ScanResponse(BaseModel):
     category: str
     food_classification: str
     compliance_status: str
-    health_rating: str
+    health_rating: Optional[str] = None
     health_score: float
     scan_date: str
     scan_time: str
