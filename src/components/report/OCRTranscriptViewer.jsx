@@ -73,7 +73,7 @@ export function OCRTranscriptViewer({ extractedFields = {}, ocrText = '', qrData
                 )}
               </div>
               <p className="text-base font-extrabold text-[#17231C]">
-                {mrp.formatted || 'Unparsed / Not Provided'}
+                {mrp.formatted || mrp.display || 'Not verified from the provided images.'}
               </p>
               <p className="text-[10px] text-[#68736B]">
                 {mrp.inclusiveOfTaxes ? '✓ Incl. of all taxes declared' : '• Taxes phrasing unconfirmed'}
@@ -94,15 +94,15 @@ export function OCRTranscriptViewer({ extractedFields = {}, ocrText = '', qrData
                   </span>
                 ) : (
                   <span className="text-[10px] text-[#68736B] bg-[#E9E8DC] px-1.5 py-0.2 rounded-sm">
-                    Not Found
+                    Not Verified
                   </span>
                 )}
               </div>
               <p className="text-base font-extrabold text-[#17231C]">
-                {mfd.raw || 'Unparsed / Not Provided'}
+                {mfd.raw || mfd.display || 'Not verified from the provided images.'}
               </p>
               <p className="text-[10px] text-[#68736B]">
-                {mfd.detectedVia ? `Detected via ${mfd.detectedVia}` : 'Requires clear date close-up view'}
+                {mfd.detectedVia ? `Detected via ${mfd.detectedVia}` : 'Requires clear packaging date view'}
               </p>
             </div>
 
@@ -119,15 +119,15 @@ export function OCRTranscriptViewer({ extractedFields = {}, ocrText = '', qrData
                   </span>
                 ) : (
                   <span className="text-[10px] text-[#68736B] bg-[#E9E8DC] px-1.5 py-0.2 rounded-sm">
-                    Not Found
+                    Not Verified
                   </span>
                 )}
               </div>
               <p className="text-base font-extrabold text-[#17231C]">
-                {exp.raw || 'Unparsed / Not Provided'}
+                {exp.raw || exp.display || 'Not verified from the provided images.'}
               </p>
               <p className="text-[10px] text-[#68736B]">
-                {exp.detectedVia ? `Detected via ${exp.detectedVia}` : 'Requires clear date close-up view'}
+                {exp.detectedVia ? `Detected via ${exp.detectedVia}` : 'Requires clear packaging expiry view'}
               </p>
             </div>
 
@@ -135,7 +135,7 @@ export function OCRTranscriptViewer({ extractedFields = {}, ocrText = '', qrData
             <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#123C2A]/10 space-y-1">
               <span className="text-[11px] font-bold text-[#68736B]">Net Quantity / Weight</span>
               <p className="text-base font-extrabold text-[#17231C]">
-                {netQty.value || 'N/A'}
+                {netQty.value || netQty.display || 'Not verified from the provided images.'}
               </p>
               <p className="text-[10px] text-[#68736B]">Legal Metrology metric unit verification</p>
             </div>
@@ -144,16 +144,16 @@ export function OCRTranscriptViewer({ extractedFields = {}, ocrText = '', qrData
             <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#123C2A]/10 space-y-1">
               <span className="text-[11px] font-bold text-[#68736B]">Batch / Lot Number</span>
               <p className="text-base font-extrabold text-[#17231C]">
-                {batch.value || 'N/A'}
+                {batch.value || batch.display || 'Not verified from the provided images.'}
               </p>
-              <p className="text-[10px] text-[#68736B]">Traceability code</p>
+              <p className="text-[10px] text-[#68736B]">Traceability identification</p>
             </div>
 
             {/* FSSAI 14-Digit */}
             <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#123C2A]/10 space-y-1">
               <span className="text-[11px] font-bold text-[#68736B]">FSSAI License / Reg. No</span>
               <p className="text-base font-extrabold text-[#17231C]">
-                {fssai.licenseNumber || 'Not Found / Category Exempt'}
+                {fssai.licenseNumber || fssai.display || 'Not verified from the provided images.'}
               </p>
               <p className="text-[10px] text-[#68736B]">
                 {fssai.isValidFormat ? '✓ 14-digit format valid' : 'Category-dependent check'}

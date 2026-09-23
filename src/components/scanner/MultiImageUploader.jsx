@@ -47,6 +47,14 @@ export function MultiImageUploader({ onStartScan }) {
   const handleFileChange = (viewId, event) => {
     const file = event.target.files?.[0];
     if (file) {
+      if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|heic|gif)$/i.test(file.name)) {
+        setValidationError('Invalid file format. Please upload a valid image file (JPG, PNG, WEBP, HEIC).');
+        return;
+      }
+      if (file.size > 15 * 1024 * 1024) {
+        setValidationError('Image size exceeds 15MB. Please upload a smaller packaging photo.');
+        return;
+      }
       setValidationError(null);
       addImage(viewId, file);
     }

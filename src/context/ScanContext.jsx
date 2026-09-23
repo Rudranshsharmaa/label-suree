@@ -1,29 +1,29 @@
 import React, { createContext, useContext, useState } from 'react';
-import { api } from '../services/api';
+import { api, getAnonymousSessionId } from '../services/api';
 import { PACKAGING_VIEWS } from '../services/ocrService';
+import { extractTextFromImage } from '../services/imageOcr';
 
 const ScanContext = createContext(null);
 
 export const SCAN_STEPS = [
-  'Checking product type...',
-  'Processing uploaded packaging views...',
-  'Extracting packaging text & labels...',
-  'Detecting MRP & tax declarations...',
-  'Detecting manufacturing & expiry dates...',
-  'Combining multi-view packaging information...',
-  'Running FSS Act & Legal Metrology compliance checks...',
-  'Analyzing nutritional facts & calculating health grade...',
-  'Compiling preliminary compliance report...'
+  'Validating uploaded packaging images...',
+  'Reading text from Front package photo...',
+  'Reading text from Back package photo...',
+  'Extracting statutory declarations (MRP, Dates, FSSAI)...',
+  'Running product classifier...',
+  'Evaluating FSS Act 2006 & Legal Metrology rules...',
+  'Analyzing nutritional facts & dietary quality...',
+  'Compiling inspection report...'
 ];
 
 export function ScanProvider({ children }) {
-  // Map of viewId -> { file, previewUrl, rawText, status }
+  // Map of viewId -> { file, previewUrl, rawText, label, uploadedAt }
   const [uploadedImages, setUploadedImages] = useState({});
   const [productCategory, setProductCategory] = useState('Standard Pre-Packaged Food');
   const [productNameInput, setProductNameInput] = useState('');
   const [qrCodeData, setQrCodeData] = useState(null);
   
-  // Scanning state
+  // Scanning progress state
   const [isScanning, setIsScanning] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [currentStepText, setCurrentStepText] = useState('');
@@ -41,7 +41,7 @@ export function ScanProvider({ children }) {
         previewUrl,
         rawText: sampleText || '',
         viewId,
-        label: PACKAGING_VIEWS.find(v => v.id === viewId)?.label || viewId,
+        label: PACKAGING_VIEWS.find(v => v.id === viewId)?.label || (viewId === 'front' ? 'Front Package Photo' : 'Back Package Photo'),
         uploadedAt: new Date().toISOString(),
       }
     }));
@@ -63,7 +63,7 @@ export function ScanProvider({ children }) {
     setProductNameInput('');
   };
 
-  // Load standard pre-configured sample product for instant testing
+  // Instant demo samples
   const loadSampleProduct = (sampleType = 'almonds') => {
     clearAllImages();
     if (sampleType === 'almonds') {
@@ -79,39 +79,36 @@ export function ScanProvider({ children }) {
         'back',
         null,
         'https://images.unsplash.com/photo-1608686207856-001b95cf60ca?auto=format&fit=crop&w=400&q=80',
-        'Ingredients: Whole Roasted Almonds FSSAI Lic No: 10020011000452 Nutritional Info per 100g: Energy: 579 kcal, Protein: 21.1g, Saturated Fat: 3.8g, Total Sugar: 4.3g, Added Sugar: 0g, Sodium: 12mg, Dietary Fibre: 12.5g Manufactured by: Harvest Farms Pvt Ltd, Nashik, MH Consumer Care: care@harvestfarms.in'
-      );
-      addImage(
-        'mrp_close',
-        null,
-        'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=400&q=80',
-        'MRP: Rs. 380.00 (Incl. of all taxes) B.No: NH-ALM-2026-08'
-      );
-      addImage(
-        'date_close',
-        null,
-        'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=400&q=80',
-        'MFD: 12/08/2026 Best Before: 9 months from manufacture'
+        'Ingredients: Whole Roasted Almonds FSSAI Lic No: 10020011000452 Nutritional Info per 100g: Energy: 579 kcal, Protein: 21.1g, Saturated Fat: 3.8g, Total Sugar: 4.3g, Added Sugar: 0g, Sodium: 12mg, Dietary Fibre: 12.5g MRP: Rs. 380.00 (Incl. of all taxes) MFD: 12/08/2026 Best Before: 9 months from manufacture B.No: NH-ALM-2026 Manufactured by: Harvest Farms Pvt Ltd, Nashik, MH Consumer Care: care@harvestfarms.in'
       );
     } else if (sampleType === 'shampoo_nonfood') {
       setProductNameInput('Herbal Anti-Dandruff Shampoo');
-      setProductCategory('Cosmetics & Personal Care');
+      setProductCategory('Cosmetics & Personal Care (Non-Food)');
       addImage(
         'front',
         null,
         'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=400&q=80',
         'BOTANICA CARE HERBAL ANTI-DANDRUFF SHAMPOO Net Vol: 200ml For External Use Only Ingredients: Sodium Laureth Sulfate, Aqua, Tea Tree Oil, Zinc Pyrithione MRP: Rs. 210.00 Mfd By: Botanica Labs'
       );
+      addImage(
+        'back',
+        null,
+        'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=400&q=80',
+        'Directions: Apply to wet hair. Rinse thoroughly. Keep out of reach of children. Not for human consumption. Batch: B9812 Mfg: 05/2026'
+      );
     }
   };
 
   /**
-   * Executes the full scanning and compliance extraction workflow.
+   * Executes the full scanning and OCR extraction workflow.
    */
   const executeScan = async (userId) => {
-    const uploadedViewKeys = Object.keys(uploadedImages);
-    if (uploadedViewKeys.length === 0) {
-      throw new Error('Please upload at least one packaging image before starting analysis.');
+    const effectiveUserId = userId || getAnonymousSessionId();
+    const frontImg = uploadedImages['front'];
+    const backImg = uploadedImages['back'];
+
+    if (!frontImg || !backImg) {
+      throw new Error('Please upload both front and back package photos for complete product analysis.');
     }
 
     setIsScanning(true);
@@ -119,43 +116,71 @@ export function ScanProvider({ children }) {
     setCurrentStepIndex(0);
 
     try {
-      // Step-by-step lightweight execution progression
-      for (let i = 0; i < SCAN_STEPS.length; i++) {
-        setCurrentStepIndex(i);
-        setCurrentStepText(SCAN_STEPS[i]);
-        await new Promise(r => setTimeout(r, 220)); // Smooth non-blocking step delay
+      // Step 0: Validation
+      setCurrentStepIndex(0);
+      setCurrentStepText(SCAN_STEPS[0]);
+      await new Promise(r => setTimeout(r, 180));
+
+      // Step 1: OCR Front Image
+      setCurrentStepIndex(1);
+      setCurrentStepText(SCAN_STEPS[1]);
+      let frontText = frontImg.rawText;
+      if (!frontText && (frontImg.file || frontImg.previewUrl)) {
+        const ocrFront = await extractTextFromImage(frontImg.file || frontImg.previewUrl);
+        frontText = ocrFront.text;
       }
 
-      // 1. Prepare image results array
-      const imageResults = uploadedViewKeys.map(key => ({
-        view: key,
-        label: uploadedImages[key].label,
-        text: uploadedImages[key].rawText || `${productNameInput} Packaging view: ${uploadedImages[key].label}`,
-        imageUrl: uploadedImages[key].previewUrl,
-      }));
+      // Step 2: OCR Back Image
+      setCurrentStepIndex(2);
+      setCurrentStepText(SCAN_STEPS[2]);
+      let backText = backImg.rawText;
+      if (!backText && (backImg.file || backImg.previewUrl)) {
+        const ocrBack = await extractTextFromImage(backImg.file || backImg.previewUrl);
+        backText = ocrBack.text;
+      }
 
-      // Combined raw string for classification
-      const combinedRaw = imageResults.map(r => r.text).join(' ') + ' ' + productNameInput;
+      // Prepare Image Results
+      const imageResults = [
+        {
+          view: 'front',
+          label: 'Front Package Photo',
+          text: frontText || `${productNameInput} Front Package Display`,
+          imageUrl: frontImg.previewUrl,
+        },
+        {
+          view: 'back',
+          label: 'Back Package Photo',
+          text: backText || `${productNameInput} Back Regulatory & Nutrition Panel`,
+          imageUrl: backImg.previewUrl,
+        },
+      ];
 
-      // 2. Food vs Non-Food Classification
-      const classification = api.classifier.classify({
-        rawText: combinedRaw,
-        productName: productNameInput,
-      });
-
-      // 3. OCR Text Parsing
+      // Step 3: Parse Declarations
+      setCurrentStepIndex(3);
+      setCurrentStepText(SCAN_STEPS[3]);
       const parsedFields = api.ocr.extract(imageResults, qrCodeData);
       if (productNameInput && !parsedFields.productName) {
         parsedFields.productName = productNameInput;
       }
+      await new Promise(r => setTimeout(r, 180));
 
-      // If Non-Food, halt food-specific engines
+      // Step 4: Classify Product (Food vs Non-Food)
+      setCurrentStepIndex(4);
+      setCurrentStepText(SCAN_STEPS[4]);
+      const combinedRaw = [frontText, backText, productNameInput, productCategory].filter(Boolean).join(' ');
+      const classification = api.classifier.classify({
+        rawText: combinedRaw,
+        productName: productNameInput,
+      });
+      await new Promise(r => setTimeout(r, 180));
+
+      // Non-Food Path: Halt food compliance & health checks
       if (!classification.isFood) {
         const nonFoodScanRecord = {
           scan_id: `SCN-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-          product_name: productNameInput || 'Scanned Non-Food Item',
+          product_name: productNameInput || 'Non-Food Packaged Product',
           brand: 'Non-Food Item',
-          product_category: classification.category,
+          product_category: classification.category || 'Cosmetics & Personal Care (Non-Food)',
           food_classification: classification.status,
           classification_confidence: classification.confidence,
           classification_details: classification,
@@ -166,23 +191,38 @@ export function ScanProvider({ children }) {
           compliance_findings: [],
           health_rating: null,
           health_rating_available: false,
-          health_summary: classification.guidance,
+          health_summary: 'This product does not appear to be a food product. LabelSure is designed for food product analysis only.',
           report_id: `REP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+          thumbnail: imageResults[0]?.imageUrl || null,
         };
 
-        const savedScan = await api.scans.createScan(nonFoodScanRecord, userId);
-        setActiveResult(savedScan);
-        setIsScanning(false);
-        return savedScan;
+        try {
+          const savedScan = await api.scans.createScan(nonFoodScanRecord, effectiveUserId);
+          setActiveResult(savedScan);
+          setIsScanning(false);
+          return savedScan;
+        } catch {
+          setActiveResult(nonFoodScanRecord);
+          setIsScanning(false);
+          return nonFoodScanRecord;
+        }
       }
 
-      // 4. Regulatory Compliance Evaluation (FSS Act 2006 & Legal Metrology)
-      const complianceResult = api.compliance.evaluate(parsedFields, uploadedViewKeys, productCategory);
+      // Step 5: Evaluate Statutory Compliance
+      setCurrentStepIndex(5);
+      setCurrentStepText(SCAN_STEPS[5]);
+      const complianceResult = api.compliance.evaluate(parsedFields, ['front', 'back'], productCategory);
+      await new Promise(r => setTimeout(r, 180));
 
-      // 5. Nutritional Health Rating Calculation (A+ to F)
+      // Step 6: Grade Nutritional Health
+      setCurrentStepIndex(6);
+      setCurrentStepText(SCAN_STEPS[6]);
       const healthResult = api.health.grade(parsedFields.nutritionalData);
+      await new Promise(r => setTimeout(r, 180));
 
-      // 6. Compile Final Structured Scan Object
+      // Step 7: Compile Complete Result
+      setCurrentStepIndex(7);
+      setCurrentStepText(SCAN_STEPS[7]);
       const fullScanRecord = {
         scan_id: `SCN-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
         product_name: productNameInput || 'Packaged Food Product',
@@ -213,13 +253,20 @@ export function ScanProvider({ children }) {
         thumbnail: imageResults[0]?.imageUrl || null,
       };
 
-      const savedScan = await api.scans.createScan(fullScanRecord, userId);
-      setActiveResult(savedScan);
-      setIsScanning(false);
-      return savedScan;
+      try {
+        const savedScan = await api.scans.createScan(fullScanRecord, effectiveUserId);
+        setActiveResult(savedScan);
+        setIsScanning(false);
+        return savedScan;
+      } catch (saveErr) {
+        console.warn('Scan saved in-memory / local storage:', saveErr);
+        setActiveResult(fullScanRecord);
+        setIsScanning(false);
+        return fullScanRecord;
+      }
     } catch (err) {
       console.error('Scanning error:', err);
-      setError(err.message || 'An error occurred during package analysis.');
+      setError(err.message || 'Scanning service is temporarily unavailable. Please try again.');
       setIsScanning(false);
       throw err;
     }
@@ -246,6 +293,7 @@ export function ScanProvider({ children }) {
         activeResult,
         setActiveResult,
         error,
+        setError,
       }}
     >
       {children}
