@@ -64,7 +64,7 @@ export function HealthAnalysisPage() {
 
           <Link to="/scanner" className="shrink-0">
             <Button size="md" variant="primary" icon={ScanLine} className="font-bold shadow-xs">
-              Scan Food Product
+              Scan Package Product
             </Button>
           </Link>
         </div>

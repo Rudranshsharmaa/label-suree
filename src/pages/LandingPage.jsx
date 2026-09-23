@@ -24,7 +24,7 @@ export function LandingPage() {
             {/* Tag */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#DCE8D8] border border-[#2E6847]/30 text-[#123C2A] text-xs font-bold shadow-xs">
               <Sparkles className="w-3.5 h-3.5 text-[#2E6847]" aria-hidden="true" />
-              <span>Intelligent Food Packaging Compliance & Health Intelligence</span>
+              <span>Intelligent Packaging Compliance & Health Intelligence</span>
             </div>
 
             {/* Main Headline */}
@@ -35,7 +35,7 @@ export function LandingPage() {
 
             {/* Description */}
             <p className="text-base sm:text-lg text-[#47544C] max-w-2xl mx-auto leading-relaxed">
-              Analyze food packaging and labels using intelligent multi-image scanning, OCR extraction, preliminary regulatory compliance checks (FSS Act 2006, Legal Metrology), and transparent A+ to F nutritional health grading.
+              Analyze packaged products and labels using intelligent multi-image scanning, OCR extraction, preliminary regulatory compliance checks (FSS Act 2006, Legal Metrology), and product health analysis where applicable.
             </p>
 
             {/* Action Buttons */}
@@ -47,7 +47,7 @@ export function LandingPage() {
                   icon={ScanLine}
                   className="w-full sm:w-auto font-extrabold px-8 shadow-md"
                 >
-                  Scan a Food Product
+                  Scan Package Product
                 </Button>
               </Link>
               <Link to="/compliance-analysis" className="w-full sm:w-auto">
@@ -265,15 +265,15 @@ export function LandingPage() {
         <ResponsiveContainer>
           <div className="p-8 sm:p-12 rounded-3xl bg-[#123C2A] text-[#F5F3EA] shadow-xl text-center space-y-6 max-w-4xl mx-auto">
             <h2 id="cta-heading" className="text-2xl sm:text-4xl font-black tracking-tight">
-              Start Auditing Food Packaging Today
+              Start Auditing Packaged Products Today
             </h2>
             <p className="text-xs sm:text-sm text-[#DCE8D8]/90 max-w-xl mx-auto leading-relaxed">
-              Scan food packaging, verify mandatory statutory declarations, and maintain your 12-month compliance scan history.
+              Scan packaged products, verify mandatory statutory declarations, and maintain your 12-month compliance scan history.
             </p>
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link to="/scanner">
                 <Button size="lg" variant="secondary" icon={ScanLine} className="font-extrabold px-8 shadow-md">
-                  Start Packaging Scan
+                  Scan Package Product
                 </Button>
               </Link>
               <Link to="/health-analysis">
