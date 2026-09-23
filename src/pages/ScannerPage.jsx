@@ -38,7 +38,7 @@ export function ScannerPage() {
     const effectiveUserId = user?.id || getAnonymousSessionId();
     try {
       const result = await executeScan(effectiveUserId);
-      if (result && isFoodClassification(result.food_classification)) {
+      if (result && result.scan_id) {
         navigate(`/reports/${result.scan_id}`);
       }
     } catch (err) {

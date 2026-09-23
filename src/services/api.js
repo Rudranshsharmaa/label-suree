@@ -81,7 +81,7 @@ export function normalizeUser(user) {
 export function isFoodClassification(status) {
   if (!status) return false;
   const s = String(status).toUpperCase();
-  return s.includes('FOOD') && !s.includes('NON-FOOD') && !s.includes('UNCERTAIN');
+  return s.includes('FOOD') && !s.includes('NON-FOOD') && !s.includes('NON_FOOD') && !s.includes('UNCERTAIN');
 }
 
 /**
@@ -515,8 +515,8 @@ export const api = {
         category: scanData.product_category || 'General Packaged Food',
         food_classification: scanData.food_classification || 'Food Product',
         compliance_status: scanData.compliance_status || 'COMPLIANT',
-        health_rating: scanData.health_rating || 'B',
-        health_score: scanData.health_score || 70.0,
+        health_rating: scanData.health_rating || null,
+        health_score: (typeof scanData.health_score === 'number' && !isNaN(scanData.health_score)) ? scanData.health_score : null,
         scan_date: scanData.scan_date || now.toISOString().split('T')[0],
         scan_time: scanData.scan_time || now.toTimeString().split(' ')[0].substring(0, 5),
         data_payload: typeof scanData === 'string' ? JSON.parse(scanData) : scanData,

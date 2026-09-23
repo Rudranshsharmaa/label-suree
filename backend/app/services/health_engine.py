@@ -1,13 +1,44 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
-def calculate_health_grade(nutritional_data: Dict[str, Any], ingredients_raw: str = "") -> Dict[str, Any]:
+def calculate_health_grade(
+    nutritional_data: Optional[Dict[str, Any]] = None, 
+    ingredients_raw: str = "",
+    food_classification: str = "Food Product"
+) -> Dict[str, Any]:
     """
     Computes strict nutritional health score (0-100) and letter grade (A+ to F).
+    Guarantees that NON-FOOD products never receive a health rating or score.
     """
+    # 1. Non-Food Guard: Health grading is strictly not applicable
+    class_lower = (food_classification or "").lower()
+    if "non-food" in class_lower or "commodity" in class_lower:
+        return {
+            "grade": None,
+            "score": None,
+            "status": "NOT_APPLICABLE",
+            "summary": "Health grading is not applicable to this product.",
+            "positives": [],
+            "concerns": [],
+            "nutrients": []
+        }
+
+    # 2. Uncertain Classification Guard
+    if "uncertain" in class_lower:
+        return {
+            "grade": None,
+            "score": None,
+            "status": "UNAVAILABLE",
+            "summary": "Health rating unavailable: Product type could not be determined confidently.",
+            "positives": [],
+            "concerns": [],
+            "nutrients": []
+        }
+
+    # 3. Food with missing or insufficient nutrition facts panel
     if not nutritional_data or not nutritional_data.get("hasNutritionPanel"):
         return {
-            "grade": "N/A",
-            "score": 0.0,
+            "grade": None,
+            "score": None,
             "status": "UNAVAILABLE",
             "summary": "Health rating unavailable: Insufficient nutritional information.",
             "positives": [],

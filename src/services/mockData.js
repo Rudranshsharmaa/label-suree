@@ -181,22 +181,89 @@ export const INITIAL_SCANS = [
     ocr_text: 'BOTANICA CARE HERBAL ANTI-DANDRUFF SHAMPOO Net Vol: 200ml For External Use Only Ingredients: Sodium Laureth Sulfate, Aqua, Tea Tree Oil, Zinc Pyrithione, Fragrance, Methylparaben MRP: Rs. 210.00 Mfd By: Botanica Labs, Haridwar',
     extracted_fields: {
       mrp: { value: 210.0, formatted: '₹ 210.00' },
-      netQuantity: { value: '200ml' }
+      netQuantity: { value: '200ml' },
+      manufacturerInfo: 'Botanica Labs, Haridwar',
+      customerCareInfo: 'care@botanicalabs.com'
     },
-    compliance_status: 'NOT APPLICABLE',
+    compliance_status: 'COMPLIANT',
     compliance_summary: {
-      total: 0,
-      compliant: 0,
+      total: 7,
+      compliant: 4,
       nonCompliant: 0,
       requiresReview: 0,
       unreadable: 0,
       notProvided: 0,
-      notApplicable: 9,
+      notApplicable: 3,
     },
+    compliance_findings: [
+      {
+        ruleId: 'FSSAI_NAME',
+        ruleName: 'Product Name / Generic Identity',
+        reference: 'Legal Metrology (Packaged Commodities) Rules 2011, Rule 6(1)(a)',
+        status: 'COMPLIANT',
+        category: 'Product Identification',
+        evidence: 'BOTANICA CARE HERBAL ANTI-DANDRUFF SHAMPOO',
+        explanation: 'Clear declaration of product generic name is required under Legal Metrology Rules.'
+      },
+      {
+        ruleId: 'FSSAI_LIC',
+        ruleName: 'FSSAI License / Registration Number',
+        reference: 'Food Safety and Standards Act, 2006',
+        status: 'NOT APPLICABLE',
+        category: 'Licensing & Statutory Declarations',
+        evidence: null,
+        explanation: 'Not applicable for non-food commodities under the Food Safety and Standards Act, 2006.'
+      },
+      {
+        ruleId: 'FSSAI_VEG_LOGO',
+        ruleName: 'Veg / Non-Veg Symbol',
+        reference: 'FSS (Labelling and Display) Regs 2020, Reg 5(4)',
+        status: 'NOT APPLICABLE',
+        category: 'Statutory Declarations',
+        evidence: null,
+        explanation: 'Veg / Non-Veg declaration is not applicable to non-food commodities.'
+      },
+      {
+        ruleId: 'LM_NET_QTY',
+        ruleName: 'Net Quantity Declaration',
+        reference: 'Legal Metrology (Packaged Commodities) Rules, 2011, Rule 6(1)(c)',
+        status: 'COMPLIANT',
+        category: 'Legal Metrology',
+        evidence: 'Net Vol: 200ml',
+        explanation: 'Net weight/volume declared in standard metric units.'
+      },
+      {
+        ruleId: 'FSSAI_INGRED',
+        ruleName: 'Ingredients / Composition Declaration',
+        reference: 'Legal Metrology Rules 2011',
+        status: 'COMPLIANT',
+        category: 'Ingredients & Composition',
+        evidence: 'Sodium Laureth Sulfate, Aqua, Tea Tree Oil, Zinc Pyrithione...',
+        explanation: 'Composition / ingredients declaration identified on packaging.'
+      },
+      {
+        ruleId: 'FSSAI_NUTRITION',
+        ruleName: 'Nutritional Information Panel',
+        reference: 'FSS (Labelling and Display) Regs 2020, Reg 5(3)',
+        status: 'NOT APPLICABLE',
+        category: 'Nutritional Declarations',
+        evidence: null,
+        explanation: 'Nutritional facts table is not applicable to non-food commodities.'
+      },
+      {
+        ruleId: 'LM_CUSTOMER_CARE',
+        ruleName: 'Manufacturer & Consumer Care Details',
+        reference: 'Legal Metrology Rules 2011, Rule 6(1)(a) & 6(1)(h)',
+        status: 'COMPLIANT',
+        category: 'Consumer Protection',
+        evidence: 'Botanica Labs, Haridwar',
+        explanation: 'Name, address, and consumer grievance contact details declared.'
+      }
+    ],
     health_rating: null,
     health_score: null,
     health_rating_available: false,
-    health_summary: 'Health grading halted: Non-food cosmetic product detected.',
+    health_summary: 'Health grading is not applicable to this product.',
     report_id: 'REP-2026-5020',
     thumbnail: 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=150&q=80',
   },

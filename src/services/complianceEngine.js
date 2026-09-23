@@ -27,26 +27,42 @@ export const REGULATORY_FRAMEWORK = {
  * @param {Object} parsedData - Structured data from OCR extraction
  * @param {Array<string>} uploadedViews - List of packaging view IDs provided by the user
  * @param {string} [productCategory='Standard Pre-Packaged Food'] - Product category for category-aware rules
+ * @param {string} [foodClassification='Food Product'] - Food vs Non-Food classification
  * @returns {Object} Comprehensive compliance findings and overall status
  */
-export function evaluateCompliance(parsedData, uploadedViews = [], productCategory = 'Standard Pre-Packaged Food') {
+export function evaluateCompliance(parsedData, uploadedViews = [], productCategory = 'Standard Pre-Packaged Food', foodClassification = 'Food Product') {
   const findings = [];
   const hasBackView = uploadedViews.includes('back') || uploadedViews.includes('ingredients_close') || uploadedViews.includes('nutrition_close');
+
+  const classStr = String(foodClassification || '').toUpperCase();
+  const isNonFood = classStr.includes('NON-FOOD') || classStr.includes('NON_FOOD') || classStr.includes('COMMODITY') || productCategory.toLowerCase().includes('non-food');
 
   // Rule 1: Product Name & Brand Name
   findings.push({
     ruleId: 'FSSAI_NAME',
-    ruleName: 'Product Name / Description',
-    reference: 'FSS (Labelling and Display) Regs 2020, Reg 5(1)',
+    ruleName: isNonFood ? 'Product Name / Generic Identity' : 'Product Name / Description',
+    reference: isNonFood ? 'Legal Metrology (Packaged Commodities) Rules 2011, Rule 6(1)(a)' : 'FSS (Labelling and Display) Regs 2020, Reg 5(1) & Legal Metrology Rule 6(1)(a)',
     status: parsedData.rawCombinedText?.length > 10 ? COMPLIANCE_STATUS.COMPLIANT : COMPLIANCE_STATUS.REQUIRES_REVIEW,
     category: 'Product Identification',
     evidence: parsedData.productName || 'Detected from front/back typography',
-    explanation: 'Clear identification of the food product is required on the principal display panel.',
+    explanation: isNonFood 
+      ? 'Clear declaration of product generic name is required under Legal Metrology Rules.'
+      : 'Clear identification of the food product is required on the principal display panel.',
   });
 
   // Rule 2: FSSAI 14-Digit License / Registration Number (Category-Dependent)
   const isCottageOrRawProduce = /raw|fresh produce|unprocessed|cottage/i.test(productCategory);
-  if (isCottageOrRawProduce) {
+  if (isNonFood) {
+    findings.push({
+      ruleId: 'FSSAI_LIC',
+      ruleName: 'FSSAI License / Registration Number',
+      reference: 'Food Safety and Standards Act, 2006',
+      status: COMPLIANCE_STATUS.NOT_APPLICABLE,
+      category: 'Licensing & Statutory Declarations',
+      evidence: null,
+      explanation: 'Not applicable for non-food commodities under the Food Safety and Standards Act, 2006.',
+    });
+  } else if (isCottageOrRawProduce) {
     findings.push({
       ruleId: 'FSSAI_LIC',
       ruleName: 'FSSAI License / Registration Number',
@@ -89,7 +105,17 @@ export function evaluateCompliance(parsedData, uploadedViews = [], productCatego
   }
 
   // Rule 3: Veg / Non-Veg Logo Declaration
-  if (parsedData.vegNonVegStatus === 'VEGETARIAN' || parsedData.vegNonVegStatus === 'NON_VEGETARIAN') {
+  if (isNonFood) {
+    findings.push({
+      ruleId: 'FSSAI_VEG_LOGO',
+      ruleName: 'Veg / Non-Veg Symbol',
+      reference: 'FSS (Labelling and Display) Regs 2020, Reg 5(4)',
+      status: COMPLIANCE_STATUS.NOT_APPLICABLE,
+      category: 'Statutory Declarations',
+      evidence: null,
+      explanation: 'Veg / Non-Veg declaration is not applicable to non-food commodities.',
+    });
+  } else if (parsedData.vegNonVegStatus === 'VEGETARIAN' || parsedData.vegNonVegStatus === 'NON_VEGETARIAN') {
     findings.push({
       ruleId: 'FSSAI_VEG_LOGO',
       ruleName: 'Veg / Non-Veg Symbol',
@@ -155,7 +181,29 @@ export function evaluateCompliance(parsedData, uploadedViews = [], productCatego
   }
 
   // Rule 5: Ingredients List
-  if (parsedData.ingredientsRaw && parsedData.ingredientsRaw.length > 15) {
+  if (isNonFood) {
+    if (parsedData.ingredientsRaw && parsedData.ingredientsRaw.length > 15) {
+      findings.push({
+        ruleId: 'FSSAI_INGRED',
+        ruleName: 'Ingredients / Composition Declaration',
+        reference: 'Legal Metrology Rules 2011',
+        status: COMPLIANCE_STATUS.COMPLIANT,
+        category: 'Ingredients & Composition',
+        evidence: `Composition: ${parsedData.ingredientsRaw.slice(0, 80)}...`,
+        explanation: 'Composition / ingredients declaration identified on packaging.',
+      });
+    } else {
+      findings.push({
+        ruleId: 'FSSAI_INGRED',
+        ruleName: 'Ingredients / Composition Declaration',
+        reference: 'Legal Metrology Rules 2011',
+        status: COMPLIANCE_STATUS.REQUIRES_REVIEW,
+        category: 'Ingredients & Composition',
+        evidence: null,
+        explanation: 'Check for composition or ingredient declarations on product container.',
+      });
+    }
+  } else if (parsedData.ingredientsRaw && parsedData.ingredientsRaw.length > 15) {
     findings.push({
       ruleId: 'FSSAI_INGRED',
       ruleName: 'List of Ingredients',
@@ -188,7 +236,17 @@ export function evaluateCompliance(parsedData, uploadedViews = [], productCatego
   }
 
   // Rule 6: Mandatory Nutritional Information Panel
-  if (parsedData.nutritionalData?.hasNutritionPanel) {
+  if (isNonFood) {
+    findings.push({
+      ruleId: 'FSSAI_NUTRITION',
+      ruleName: 'Nutritional Information Panel',
+      reference: 'FSS (Labelling and Display) Regs 2020, Reg 5(3)',
+      status: COMPLIANCE_STATUS.NOT_APPLICABLE,
+      category: 'Nutritional Declarations',
+      evidence: null,
+      explanation: 'Nutritional facts table is not applicable to non-food commodities.',
+    });
+  } else if (parsedData.nutritionalData?.hasNutritionPanel) {
     const hasCore = parsedData.nutritionalData.energyKcal !== null && parsedData.nutritionalData.totalSugarG !== null;
     findings.push({
       ruleId: 'FSSAI_NUTRITION',

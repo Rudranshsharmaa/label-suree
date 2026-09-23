@@ -122,7 +122,10 @@ export function ReportPage() {
     );
   }
 
-  const isFood = isFoodClassification(scan.food_classification);
+  const classStr = String(scan.food_classification || '').toUpperCase();
+  const isFood = classStr.includes('FOOD') && !classStr.includes('NON-FOOD') && !classStr.includes('NON_FOOD') && !classStr.includes('UNCERTAIN');
+  const isNonFood = classStr.includes('NON-FOOD') || classStr.includes('NON_FOOD') || classStr.includes('COMMODITY');
+  const isUncertain = !isFood && !isNonFood;
 
   return (
     <div className="py-8 sm:py-10 space-y-8">
@@ -184,7 +187,7 @@ export function ReportPage() {
               <div className="flex flex-col md:items-end gap-2 shrink-0">
                 <div className="flex items-center gap-2">
                   <StatusBadge status={scan.compliance_status} size="md" />
-                  {scan.health_rating && (
+                  {isFood && scan.health_rating && (
                     <StatusBadge status={scan.health_rating} size="md" />
                   )}
                 </div>
@@ -219,50 +222,68 @@ export function ReportPage() {
             qrData={scan.extracted_fields?.qrData}
           />
 
-          {/* If Food Product: Render Full Compliance & Health Modules */}
+          {/* Statutory Compliance Section (Evaluated for all products) */}
+          <div className="space-y-4 print-break-inside-avoid">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-[#123C2A]" />
+              <h2 className="text-lg font-bold text-[#17231C]">
+                Statutory Compliance Assessment
+              </h2>
+            </div>
+
+            <ComplianceCard scan={scan} />
+
+            <FindingsTable
+              findings={scan.compliance_findings}
+              regulatoryFramework={scan.regulatory_framework}
+            />
+          </div>
+
+          {/* Nutritional Health Section (3-Branch Decoupled Logic) */}
           {isFood ? (
-            <>
-              {/* Compliance Section */}
-              <div className="space-y-4 print-break-inside-avoid">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-[#123C2A]" />
-                  <h2 className="text-lg font-bold text-[#17231C]">
-                    Statutory Compliance Assessment
-                  </h2>
-                </div>
-
-                <ComplianceCard scan={scan} />
-
-                <FindingsTable
-                  findings={scan.compliance_findings}
-                  regulatoryFramework={scan.regulatory_framework}
-                />
+            <div className="space-y-4 print-break-inside-avoid">
+              <div className="flex items-center gap-2">
+                <HeartPulse className="w-5 h-5 text-[#123C2A]" />
+                <h2 className="text-lg font-bold text-[#17231C]">
+                  Nutritional Health Profiling
+                </h2>
               </div>
 
-              {/* Nutritional Health Section */}
-              <div className="space-y-4 print-break-inside-avoid">
-                <div className="flex items-center gap-2">
-                  <HeartPulse className="w-5 h-5 text-[#123C2A]" />
-                  <h2 className="text-lg font-bold text-[#17231C]">
-                    Nutritional Health Profiling
-                  </h2>
-                </div>
+              <HealthRatingCard scan={scan} />
 
-                <HealthRatingCard scan={scan} />
-
-                <NutrientBreakdown
-                  nutritionalData={scan.extracted_fields?.nutritionalData}
-                  ingredientsRaw={scan.extracted_fields?.ingredientsRaw}
-                />
+              <NutrientBreakdown
+                nutritionalData={scan.extracted_fields?.nutritionalData}
+                ingredientsRaw={scan.extracted_fields?.ingredientsRaw}
+              />
+            </div>
+          ) : isNonFood ? (
+            <div className="p-6 sm:p-7 rounded-3xl bg-[#FAF9F5] border border-[#123C2A]/15 shadow-soft space-y-3 text-left">
+              <div className="flex items-center gap-2">
+                <StatusBadge status="NON-FOOD PRODUCT" size="sm" />
+                <span className="text-xs font-bold text-[#68736B] uppercase tracking-wider">
+                  Health Analysis Excluded
+                </span>
               </div>
-            </>
-          ) : (
-            <div className="p-6 rounded-3xl bg-[#FBEBEB] border border-[#B94A48]/30 space-y-2 text-left">
-              <h3 className="text-base font-bold text-[#B94A48]">
-                Non-Food Item: Food Checks Omitted
+              <h3 className="text-base sm:text-lg font-black text-[#17231C]">
+                NON-FOOD PRODUCT
               </h3>
-              <p className="text-xs sm:text-sm text-[#17231C] leading-relaxed">
-                This item was classified as a non-food product ({scan.product_category}). LabelSure evaluates statutory packaging compliance and health ratings strictly for human food commodities.
+              <p className="text-xs sm:text-sm text-[#47544C] leading-relaxed">
+                <strong>Health grading is not applicable to this product.</strong> Nutritional profiling, A+ to F letter grading, and nutrient quality scoring are restricted exclusively to human food and beverage commodities. Statutory packaging declarations have been audited under applicable Legal Metrology rules above.
+              </p>
+            </div>
+          ) : (
+            <div className="p-6 sm:p-7 rounded-3xl bg-[#FAF9F5] border border-[#C78A28]/30 shadow-soft space-y-3 text-left">
+              <div className="flex items-center gap-2">
+                <StatusBadge status="UNCERTAIN — REQUIRES REVIEW" size="sm" />
+                <span className="text-xs font-bold text-[#C78A28] uppercase tracking-wider">
+                  Classification Review
+                </span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-[#17231C]">
+                Uncertain Product Classification
+              </h3>
+              <p className="text-xs sm:text-sm text-[#47544C] leading-relaxed">
+                <strong>Health rating unavailable: Product type could not be determined confidently.</strong> Mixed or insufficient packaging indicators were detected. Please provide clearer packaging images (including ingredients or nutrition table) to determine if this product qualifies for nutritional health grading.
               </p>
             </div>
           )}

@@ -172,7 +172,7 @@ export function ScanProvider({ children }) {
       }
       await new Promise(r => setTimeout(r, 180));
 
-      // Step 4: Classify Product (Food vs Non-Food)
+      // Step 4: Classify Product (Food vs Non-Food vs Uncertain)
       setCurrentStepIndex(4);
       setCurrentStepText(SCAN_STEPS[4]);
       const combinedRaw = [frontText, backText, productNameInput, productCategory].filter(Boolean).join(' ');
@@ -182,60 +182,36 @@ export function ScanProvider({ children }) {
       });
       await new Promise(r => setTimeout(r, 180));
 
-      // Non-Food Path: Halt food compliance & health checks
-      if (!classification.isFood) {
-        const nonFoodScanRecord = {
-          scan_id: `SCN-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-          product_name: productNameInput || 'Non-Food Packaged Product',
-          brand: 'Non-Food Item',
-          product_category: classification.category || 'Cosmetics & Personal Care (Non-Food)',
-          food_classification: classification.status,
-          classification_confidence: classification.confidence,
-          classification_details: classification,
-          uploaded_images: imageResults,
-          ocr_text: parsedFields.rawCombinedText,
-          extracted_fields: parsedFields,
-          compliance_status: 'NOT APPLICABLE',
-          compliance_findings: [],
-          health_rating: null,
-          health_rating_available: false,
-          health_summary: 'This product does not appear to be a food product. LabelSure is designed for food product analysis only.',
-          report_id: `REP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-          thumbnail: imageResults[0]?.imageUrl || null,
-        };
-
-        try {
-          const savedScan = await api.scans.createScan(nonFoodScanRecord, effectiveUserId);
-          setActiveResult(savedScan);
-          setIsScanning(false);
-          return savedScan;
-        } catch {
-          setActiveResult(nonFoodScanRecord);
-          setIsScanning(false);
-          return nonFoodScanRecord;
-        }
-      }
-
-      // Step 5: Evaluate Statutory Compliance
+      // Step 5: Evaluate Statutory Compliance (Category & Classification Aware)
       setCurrentStepIndex(5);
       setCurrentStepText(SCAN_STEPS[5]);
-      const complianceResult = api.compliance.evaluate(parsedFields, uploadedViewKeys, productCategory);
+      const effectiveCategory = classification.category || productCategory;
+      const complianceResult = api.compliance.evaluate(
+        parsedFields, 
+        uploadedViewKeys, 
+        effectiveCategory,
+        classification.status
+      );
       await new Promise(r => setTimeout(r, 180));
 
-      // Step 6: Grade Nutritional Health
+      // Step 6: Grade Nutritional Health (Strictly Decoupled & Food-Gated)
       setCurrentStepIndex(6);
       setCurrentStepText(SCAN_STEPS[6]);
-      const healthResult = api.health.grade(parsedFields.nutritionalData, parsedFields.ingredientsRaw);
+      const healthResult = api.health.grade(
+        parsedFields.nutritionalData, 
+        parsedFields.ingredientsRaw,
+        classification.status
+      );
       await new Promise(r => setTimeout(r, 180));
 
-      // Step 7: Compile Complete Result
+      // Step 7: Compile Complete Audit Record
       setCurrentStepIndex(7);
       setCurrentStepText(SCAN_STEPS[7]);
       const fullScanRecord = {
         scan_id: `SCN-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-        product_name: productNameInput || (parsedFields.productName || 'Packaged Food Product'),
-        brand: parsedFields.brand || (parsedFields.manufacturerInfo ? parsedFields.manufacturerInfo.split(',')[0] : 'Brand Label'),
-        product_category: productCategory,
+        product_name: productNameInput || (parsedFields.productName || (classification.isFood ? 'Packaged Food Product' : 'Packaged Commodity Product')),
+        brand: parsedFields.brand || (parsedFields.manufacturerInfo ? parsedFields.manufacturerInfo.split(',')[0] : (classification.isFood ? 'Brand Label' : 'Commodity Brand')),
+        product_category: effectiveCategory,
         food_classification: classification.status,
         classification_confidence: classification.confidence,
         classification_details: classification,

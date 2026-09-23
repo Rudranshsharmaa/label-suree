@@ -21,19 +21,63 @@ const CONCERN_INGREDIENTS = [
  * Calculates a strict, evidence-based A+ to F health grade based on nutrient thresholds per 100g.
  * @param {Object} nutritionalData - Extracted nutritional facts
  * @param {string} [ingredientsRaw=''] - Extracted raw ingredients text
+ * @param {string} [foodClassification='Food Product'] - Food classification string
  * @returns {Object} Strict health rating assessment with score, grade, positives, concerns, and explanation
  */
-export function calculateHealthGrade(nutritionalData = {}, ingredientsRaw = '') {
+export function calculateHealthGrade(nutritionalData = {}, ingredientsRaw = '', foodClassification = 'Food Product') {
+  const classStr = String(foodClassification || '').toUpperCase();
+  const isNonFood = classStr.includes('NON-FOOD') || classStr.includes('NON_FOOD') || classStr.includes('COMMODITY');
+  const isUncertain = !isNonFood && (classStr.includes('UNCERTAIN') || classStr.includes('UNKNOWN'));
+
+  // 1. NON-FOOD Guard: Strictly omit health grading and letters
+  if (isNonFood) {
+    return {
+      available: false,
+      isNonFood: true,
+      grade: null,
+      score: null,
+      status: 'NOT_APPLICABLE',
+      reason: 'Health grading is not applicable to this product.',
+      guidance: 'Nutritional profiling, A+ to F grading, and nutrient quality scores are restricted exclusively to human food and beverage products.',
+      disclaimer: HEALTH_DISCLAIMER,
+      positives: [],
+      concerns: [],
+      whyThisGrade: 'Health grading is not applicable to non-food commodities.',
+      nutrientsUsed: {},
+    };
+  }
+
+  // 2. UNCERTAIN Guard: Require classification confirmation before grading
+  if (isUncertain) {
+    return {
+      available: false,
+      isUncertain: true,
+      grade: null,
+      score: null,
+      status: 'UNAVAILABLE',
+      reason: 'Health rating unavailable: Product type could not be determined confidently.',
+      guidance: 'Mixed or insufficient packaging indicators were detected. Please upload clearer packaging images or verify product classification.',
+      disclaimer: HEALTH_DISCLAIMER,
+      positives: [],
+      concerns: [],
+      whyThisGrade: 'Product type could not be determined confidently.',
+      nutrientsUsed: {},
+    };
+  }
+
+  // 3. FOOD with missing or insufficient nutrition panel
   if (!nutritionalData || !nutritionalData.hasNutritionPanel) {
     return {
       available: false,
+      isFood: true,
       grade: null,
       score: null,
+      status: 'UNAVAILABLE',
       reason: 'Health rating unavailable: Insufficient nutritional information.',
       guidance: 'No nutritional panel was detected in the scanned packaging. To receive a health grade, please provide a clear view of the nutrition facts table.',
       disclaimer: HEALTH_DISCLAIMER,
       positives: [],
-      concerns: ['No nutritional facts panel provided'],
+      concerns: ['No nutritional facts panel detected'],
       whyThisGrade: 'Nutritional information is insufficient to evaluate dietary quality.',
       nutrientsUsed: {},
     };

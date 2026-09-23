@@ -28,8 +28,12 @@ def analyze_packaging_with_quarantine(image_results: List[Dict[str, Any]], produ
     # Evaluate Statutory Compliance
     compliance_res = evaluate_compliance(parsed_fields, food_classification=food_class, category=category)
     
-    # Calculate Health Grade
-    health_res = calculate_health_grade(parsed_fields.get("nutritionalData", {}))
+    # Calculate Health Grade (strictly decoupled and gated by food classification)
+    health_res = calculate_health_grade(
+        nutritional_data=parsed_fields.get("nutritionalData", {}),
+        ingredients_raw=parsed_fields.get("ingredientsRaw", ""),
+        food_classification=food_class
+    )
 
     # 2. Structural Prompt Injection Quarantine Builder
     raw_untrusted_text = parsed_fields.get("rawCombinedText", "")
@@ -55,8 +59,8 @@ Perform a strict regulatory compliance verification and return JSON with verifie
         "category": category,
         "food_classification": food_class,
         "compliance_status": compliance_res.get("overall_status", "COMPLIANT"),
-        "health_rating": health_res.get("grade", "B"),
-        "health_score": health_res.get("score", 70.0),
+        "health_rating": health_res.get("grade"),
+        "health_score": health_res.get("score"),
         "parsed_fields": parsed_fields,
         "compliance_results": compliance_res,
         "health_results": health_res,

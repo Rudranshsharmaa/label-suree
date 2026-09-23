@@ -5,7 +5,16 @@ import { HEALTH_DISCLAIMER } from '../../services/healthRatingEngine';
 export function HealthRatingCard({ scan }) {
   if (!scan) return null;
 
-  const isAvailable = scan.health_rating_available;
+  const classStr = String(scan.food_classification || '').toUpperCase();
+  const isNonFood = classStr.includes('NON-FOOD') || classStr.includes('NON_FOOD') || classStr.includes('COMMODITY') || scan.health_details?.isNonFood;
+  const isUncertain = !isNonFood && (classStr.includes('UNCERTAIN') || classStr.includes('UNKNOWN') || scan.health_details?.isUncertain);
+
+  // For non-food and uncertain products, completely hide the Health Rating Card
+  if (isNonFood || isUncertain) {
+    return null;
+  }
+
+  const isAvailable = scan.health_rating_available && scan.health_rating;
   const grade = scan.health_rating;
   const score = scan.health_score ?? (scan.health_details?.score || 0);
   const details = scan.health_details || {};
@@ -26,9 +35,9 @@ export function HealthRatingCard({ scan }) {
         <div className="p-4 rounded-2xl bg-[#FEF6E8] border border-[#C78A28]/20 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-[#C78A28] shrink-0 mt-0.5" />
           <div className="text-xs text-[#17231C] space-y-1">
-            <p className="font-bold">Health rating unavailable: Insufficient nutritional information.</p>
+            <p className="font-bold text-sm text-[#17231C]">Health rating unavailable: Insufficient nutritional information.</p>
             <p className="text-[#68736B]">
-              {scan.health_summary || 'Essential macronutrient values (calories, sugars, saturated fats, or sodium) were not detected on the packaging.'}
+              {scan.health_summary || 'Essential macronutrient values (calories, sugars, saturated fats, or sodium) were not detected on the packaging. To receive an A+ to F health grade, please provide a clear view of the nutrition facts table.'}
             </p>
           </div>
         </div>

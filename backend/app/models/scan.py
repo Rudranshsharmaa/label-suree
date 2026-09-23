@@ -13,8 +13,8 @@ class Scan(Base):
     category = Column(String(128), default="General Packaged Food")
     food_classification = Column(String(64), default="Food Product")
     compliance_status = Column(String(64), default="COMPLIANT")
-    health_rating = Column(String(64), default="B", nullable=True)
-    health_score = Column(Float, default=70.0)
+    health_rating = Column(String(64), default=None, nullable=True)
+    health_score = Column(Float, default=None, nullable=True)
     scan_date = Column(String(10), index=True, nullable=False) # YYYY-MM-DD
     scan_time = Column(String(8), default="00:00")
     data_payload = Column(Text, nullable=False)  # JSON-serialized report data
