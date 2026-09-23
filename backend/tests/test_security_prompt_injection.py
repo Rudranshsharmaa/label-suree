@@ -21,5 +21,5 @@ def test_prompt_injection_structural_quarantine():
     assert result["security_metadata"]["delimiter_tag"] == "untrusted_packaging_ocr_transcript"
 
     # Verify that the high sugar content (28g > 22.5g) still correctly received penalties and was not overridden
-    assert result["health_rating"] in ("B", "C", "D", "F")
+    assert result["health_rating"] in ("B", "C", "D", "E", "F")
     assert result["health_results"]["score"] < 90.0 # Did not get bypassed to 100

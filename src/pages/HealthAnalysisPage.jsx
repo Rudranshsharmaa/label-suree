@@ -134,19 +134,21 @@ export function HealthAnalysisPage() {
                 <div className="p-4 rounded-2xl bg-white border border-[#123C2A]/10 space-y-2">
                   <h4 className="font-bold text-[#B94A48]">Negative Nutritional Penalties:</h4>
                   <ul className="list-disc list-inside space-y-1 text-[#68736B]">
-                    <li><strong>Added Sugars & Total Sugars:</strong> Penalized when exceeding 12.5g / 25g per 100g.</li>
-                    <li><strong>Saturated Fats:</strong> Penalized when exceeding 4g / 10g per 100g.</li>
-                    <li><strong>Sodium / Salt:</strong> Penalized when exceeding 400mg / 900mg per 100g.</li>
-                    <li><strong>High Energy Density:</strong> Penalized when exceeding 450 kcal per 100g.</li>
+                    <li><strong>Added Sugars:</strong> Priority penalty scaled above 8g, 20g, and 30g/100g (protecting naturally occurring lactose/fructose).</li>
+                    <li><strong>Saturated Fats:</strong> Proportionately penalized above 5g, 10g, and 16g/100g.</li>
+                    <li><strong>Industrial Trans Fats:</strong> Strict zero tolerance (&gt;0.2g/100g caps grade).</li>
+                    <li><strong>Sodium / Salt:</strong> Penalized when exceeding 400mg, 750mg, and 1200mg/100g.</li>
+                    <li><strong>Additives:</strong> Penalties for hydrogenated palm oils, high-glycemic syrups, and artificial additives.</li>
                   </ul>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-white border border-[#123C2A]/10 space-y-2">
                   <h4 className="font-bold text-[#347A4D]">Positive Nutrient Rewards:</h4>
                   <ul className="list-disc list-inside space-y-1 text-[#68736B]">
-                    <li><strong>Protein:</strong> Rewarded when protein content is ≥ 5g / 10g per 100g.</li>
-                    <li><strong>Dietary Fibre:</strong> Rewarded when dietary fibre is ≥ 3g / 6g per 100g.</li>
-                    <li><strong>Whole Food Ingredients:</strong> Minimal processing preservation.</li>
+                    <li><strong>Protein Density:</strong> Substantial bonus for protein content ≥ 6g, 12g, and 20g/100g.</li>
+                    <li><strong>Dietary Fibre:</strong> Substantial bonus for dietary fibre ≥ 2.5g, 5g, and 8g/100g.</li>
+                    <li><strong>Whole Food Preservation:</strong> Pure whole-food ingredients (e.g. 100% nuts, seeds, oats) without added sugar or palm oil.</li>
+                    <li><strong>Balanced Baseline:</strong> 55-point starting foundation ensuring holistic dietary assessment without unfairly punishing nutrient-dense whole foods.</li>
                   </ul>
                 </div>
               </div>
