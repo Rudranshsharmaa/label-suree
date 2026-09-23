@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
+import { api, getAnonymousSessionId } from '../services/api';
 import { ResponsiveContainer } from '../components/layout/ResponsiveContainer';
 import { HistoryFilters } from '../components/history/HistoryFilters';
 import { HistoryTable } from '../components/history/HistoryTable';
@@ -23,13 +23,14 @@ export function HistoryPage() {
   });
 
   const loadScans = async () => {
-    if (!user) return;
+    const effectiveUserId = user?.id || getAnonymousSessionId();
     try {
       setLoading(true);
-      const data = await api.scans.getUserScans(user.id, filters);
-      setScans(data);
+      const data = await api.scans.getUserScans(effectiveUserId, filters);
+      setScans(data || []);
     } catch (err) {
-      console.error('Failed to load history:', err);
+      console.warn('Failed to load history:', err);
+      setScans([]);
     } finally {
       setLoading(false);
     }

@@ -40,7 +40,7 @@ export function LandingPage() {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
-              <Link to={isAuthenticated ? "/scanner" : "/signup"} className="w-full sm:w-auto">
+              <Link to="/scanner" className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   variant="primary"
@@ -50,13 +50,14 @@ export function LandingPage() {
                   Scan a Food Product
                 </Button>
               </Link>
-              <Link to={isAuthenticated ? "/dashboard" : "/login"} className="w-full sm:w-auto">
+              <Link to="/compliance-analysis" className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   variant="secondary"
+                  icon={ShieldCheck}
                   className="w-full sm:w-auto font-bold px-7"
                 >
-                  {isAuthenticated ? 'Open Dashboard' : 'Sign In to Account'}
+                  Compliance Framework
                 </Button>
               </Link>
             </div>
@@ -270,14 +271,14 @@ export function LandingPage() {
               Create an account to scan food packaging, verify mandatory statutory declarations, and maintain your 12-month compliance scan history.
             </p>
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link to="/signup">
-                <Button size="lg" variant="secondary" className="font-extrabold px-8 shadow-md">
-                  Create Free Account
+              <Link to="/scanner">
+                <Button size="lg" variant="secondary" icon={ScanLine} className="font-extrabold px-8 shadow-md">
+                  Start Packaging Scan
                 </Button>
               </Link>
-              <Link to="/login">
+              <Link to="/health-analysis">
                 <Button size="lg" variant="outline" className="text-[#F5F3EA] border-[#DCE8D8] hover:bg-white/10 px-8">
-                  Sign In
+                  Nutritional Health Index
                 </Button>
               </Link>
             </div>

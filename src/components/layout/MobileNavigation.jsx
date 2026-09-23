@@ -1,24 +1,20 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import { 
-  LayoutDashboard, 
   ScanLine, 
   History, 
   ShieldCheck, 
-  ActivitySquare 
+  ActivitySquare,
+  Home
 } from 'lucide-react';
 
 export function MobileNavigation() {
-  const { isAuthenticated } = useAuth();
   const location = useLocation();
 
-  if (!isAuthenticated) return null;
-
   const navItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { label: 'Home', path: '/', icon: Home },
     { label: 'Compliance', path: '/compliance-analysis', icon: ShieldCheck },
-    { label: 'Scanner', path: '/scanner', icon: ScanLine, isPrimary: true },
+    { label: 'Scan', path: '/scanner', icon: ScanLine, isPrimary: true },
     { label: 'Health', path: '/health-analysis', icon: ActivitySquare },
     { label: 'History', path: '/history', icon: History },
   ];

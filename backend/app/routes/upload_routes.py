@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Request, status
 
 from backend.app.limiter import limiter
-from backend.app.models.user import User
-from backend.app.routes.deps import get_current_user
+from backend.app.routes.deps import get_current_user_or_anonymous
 from backend.app.services.upload_service import validate_and_save_image
 
 router = APIRouter(prefix="/upload", tags=["Upload"])
@@ -13,7 +12,7 @@ async def upload_packaging_image(
     request: Request,
     file: UploadFile = File(...),
     view: str = Form(default="front"),
-    current_user: User = Depends(get_current_user)
+    auth_context: dict = Depends(get_current_user_or_anonymous)
 ):
     """
     Secure packaging image upload endpoint:
@@ -29,10 +28,11 @@ async def upload_packaging_image(
             detail="Empty file uploaded."
         )
 
+    user_id = auth_context["user_id"]
     saved_path, img_format, width, height = validate_and_save_image(
         file_bytes=contents,
         original_filename=file.filename or "image.jpg",
-        user_id=current_user.id
+        user_id=user_id
     )
 
     return {

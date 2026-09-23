@@ -11,26 +11,27 @@ from backend.app.models.scan import Scan
 from backend.app.schemas.scan import ScanCreateRequest, ScanResponse, QuotaResponse
 from backend.app.services.upload_service import delete_user_files
 from backend.app.services.quota_service import get_quota_status, check_and_increment_quota
-from backend.app.routes.deps import get_current_user
+from backend.app.routes.deps import get_current_user_or_anonymous
 
 router = APIRouter(prefix="/scans", tags=["Scans & Reports"])
 
 @router.post("", response_model=ScanResponse)
 def create_scan(
     payload: ScanCreateRequest,
-    current_user: User = Depends(get_current_user),
+    auth_context: dict = Depends(get_current_user_or_anonymous),
     db: Session = Depends(get_db)
 ):
-    """Creates a new packaging scan and compliance audit record strictly scoped to current_user."""
+    """Creates a new packaging scan and compliance audit record strictly scoped to current user or anonymous session."""
+    user_id = auth_context["user_id"]
     # 1. Enforce user & global scan quotas atomically (raises HTTP 429 if exceeded)
-    check_and_increment_quota(db, current_user.id)
+    check_and_increment_quota(db, user_id)
 
     now = datetime.utcnow()
     scan_id = payload.scan_id if (payload.scan_id and payload.scan_id.startswith("SCN-")) else f"SCN-{now.year}-{uuid.uuid4().hex[:6].upper()}"
     
     new_scan = Scan(
         scan_id=scan_id,
-        user_id=current_user.id,
+        user_id=user_id,
         product_name=payload.product_name,
         brand=payload.brand or "",
         category=payload.category or "General Packaged Food",
@@ -55,18 +56,19 @@ def get_user_scans(
     compliance_status: Optional[str] = Query(None),
     food_classification: Optional[str] = Query(None),
     health_grade: Optional[str] = Query(None),
-    current_user: User = Depends(get_current_user),
+    auth_context: dict = Depends(get_current_user_or_anonymous),
     db: Session = Depends(get_db)
 ):
     """
-    Retrieves scan history strictly scoped to the authenticated user and
+    Retrieves scan history strictly scoped to the authenticated user or anonymous session and
     bounded by the dynamic rolling 12-month query retention window.
     """
+    user_id = auth_context["user_id"]
     now = datetime.now(timezone.utc)
     twelve_months_ago = (now - timedelta(days=365)).strftime("%Y-%m-%d")
 
     query = db.query(Scan).filter(
-        Scan.user_id == current_user.id,
+        Scan.user_id == user_id,
         Scan.scan_date >= twelve_months_ago
     )
 
@@ -93,16 +95,17 @@ def get_user_scans(
 @router.get("/{scan_id}", response_model=ScanResponse)
 def get_scan_by_id(
     scan_id: str,
-    current_user: User = Depends(get_current_user),
+    auth_context: dict = Depends(get_current_user_or_anonymous),
     db: Session = Depends(get_db)
 ):
     """
     Retrieves a single scan report with strict ownership authorization.
-    Returns 404 if the scan does not exist or does not belong to the user (anti-IDOR).
+    Returns 404 if the scan does not exist or does not belong to the user/session (anti-IDOR).
     """
+    user_id = auth_context["user_id"]
     scan = db.query(Scan).filter(
         Scan.scan_id == scan_id,
-        Scan.user_id == current_user.id
+        Scan.user_id == user_id
     ).first()
 
     if not scan:
@@ -116,16 +119,17 @@ def get_scan_by_id(
 @router.get("/{scan_id}/report.pdf")
 def get_scan_pdf_report(
     scan_id: str,
-    current_user: User = Depends(get_current_user),
+    auth_context: dict = Depends(get_current_user_or_anonymous),
     db: Session = Depends(get_db)
 ):
     """
-    Protected PDF report endpoint. Requires authenticated Bearer token and verifies ownership.
-    No unauthenticated or public access permitted.
+    Protected PDF report endpoint. Requires authenticated Bearer token or active session and verifies ownership.
     """
+    user_id = auth_context["user_id"]
+    user_email = auth_context["email"]
     scan = db.query(Scan).filter(
         Scan.scan_id == scan_id,
-        Scan.user_id == current_user.id
+        Scan.user_id == user_id
     ).first()
 
     if not scan:
@@ -134,12 +138,11 @@ def get_scan_pdf_report(
             detail="Report record not found or access denied."
         )
 
-    # Returns validated metadata for authenticated client-side or server-side PDF generator
     return {
         "success": True,
         "scan_id": scan.scan_id,
         "product_name": scan.product_name,
-        "authorized_user": current_user.email,
+        "authorized_user": user_email,
         "download_timestamp": datetime.utcnow().isoformat(),
         "report_data": json.loads(scan.data_payload)
     }
@@ -147,13 +150,14 @@ def get_scan_pdf_report(
 @router.delete("/{scan_id}")
 def delete_scan(
     scan_id: str,
-    current_user: User = Depends(get_current_user),
+    auth_context: dict = Depends(get_current_user_or_anonymous),
     db: Session = Depends(get_db)
 ):
     """Deletes a scan record and its associated physical image files from disk."""
+    user_id = auth_context["user_id"]
     scan = db.query(Scan).filter(
         Scan.scan_id == scan_id,
-        Scan.user_id == current_user.id
+        Scan.user_id == user_id
     ).first()
 
     if not scan:
@@ -164,7 +168,7 @@ def delete_scan(
 
     try:
         paths = json.loads(scan.image_paths or "[]")
-        delete_user_files(db, current_user.id, paths)
+        delete_user_files(db, user_id, paths)
     except Exception:
         pass
 
@@ -174,11 +178,12 @@ def delete_scan(
 
 @router.get("/user/quota", response_model=QuotaResponse)
 def get_user_quota(
-    current_user: User = Depends(get_current_user),
+    auth_context: dict = Depends(get_current_user_or_anonymous),
     db: Session = Depends(get_db)
 ):
-    """Returns quota and usage stats for the authenticated user."""
-    stats = get_quota_status(db, current_user.id)
+    """Returns quota and usage stats for the current user or anonymous session."""
+    user_id = auth_context["user_id"]
+    stats = get_quota_status(db, user_id)
     return QuotaResponse(**stats)
 
 def format_scan_response(scan: Scan) -> ScanResponse:

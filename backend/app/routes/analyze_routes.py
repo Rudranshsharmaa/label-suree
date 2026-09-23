@@ -5,8 +5,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app.limiter import limiter
-from backend.app.models.user import User
-from backend.app.routes.deps import get_current_user
+from backend.app.routes.deps import get_current_user_or_anonymous
 from backend.app.services.quota_service import check_and_increment_quota
 from backend.app.services.ai_service import analyze_packaging_with_quarantine
 
@@ -22,18 +21,19 @@ class AnalyzeRequest(BaseModel):
 def analyze_packaging(
     request: Request,
     payload: AnalyzeRequest,
-    current_user: User = Depends(get_current_user),
+    auth_context: dict = Depends(get_current_user_or_anonymous),
     db: Session = Depends(get_db)
 ):
     """
     Executes packaging analysis pipeline:
-    1. Atomically enforces user and global Gemini/AI daily quotas (raises 429 if exceeded).
+    1. Atomically enforces user/anonymous and global Gemini/AI daily quotas (raises 429 if exceeded).
     2. Runs structural prompt-injection quarantine on raw extracted text.
     3. Evaluates statutory compliance under FSS Act 2006 & Legal Metrology.
     4. Computes nutritional health score & grade (A+ to F).
     """
+    user_id = auth_context["user_id"]
     # 1. Atomic Quota Enforcement
-    check_and_increment_quota(db, current_user.id)
+    check_and_increment_quota(db, user_id)
 
     # 2. AI & Rule Engine Execution
     analysis_results = analyze_packaging_with_quarantine(

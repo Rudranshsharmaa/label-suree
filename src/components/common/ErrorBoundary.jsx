@@ -50,10 +50,10 @@ export class ErrorBoundary extends React.Component {
 
             <div className="space-y-2">
               <h2 className="text-xl sm:text-2xl font-black text-[#17231C]">
-                Something went wrong
+                Scanning Service Notice
               </h2>
               <p className="text-xs sm:text-sm text-[#47544C] leading-relaxed">
-                Something went wrong while rendering this section. Please try again or return to the dashboard.
+                Scanning service is temporarily unavailable. Please try again.
               </p>
             </div>
 

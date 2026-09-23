@@ -25,6 +25,16 @@ const IS_DEMO_MODE = import.meta.env.VITE_APP_MODE === 'demo';
 let inMemoryAccessToken = null;
 let inMemoryCsrfToken = null;
 
+export function getAnonymousSessionId() {
+  if (typeof window === 'undefined') return 'anon-default';
+  let sessionId = localStorage.getItem('labelsure_anon_session_id');
+  if (!sessionId) {
+    sessionId = 'anon_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now().toString(36);
+    localStorage.setItem('labelsure_anon_session_id', sessionId);
+  }
+  return sessionId;
+}
+
 export function setAccessToken(token) {
   inMemoryAccessToken = token;
 }
@@ -81,6 +91,7 @@ async function secureFetch(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
   const headers = {
     'Accept': 'application/json',
+    'X-Anonymous-Session-Id': getAnonymousSessionId(),
     ...(options.headers || {}),
   };
 
@@ -242,38 +253,65 @@ export const api = {
     },
 
     async getCurrentUser() {
+      const anonUser = {
+        id: getAnonymousSessionId(),
+        email: 'guest@labelsure.org',
+        full_name: 'Guest Inspector',
+        fullName: 'Guest Inspector',
+        role: 'Public Food Inspector',
+        organization: 'Independent Citizen Auditor',
+        is_active: true,
+        is_guest: true,
+        scans_remaining: 50,
+        total_scans_used: 0,
+      };
+
       if (IS_DEMO_MODE) {
         const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-        return userStr ? normalizeUser(JSON.parse(userStr)) : null;
+        return userStr ? normalizeUser(JSON.parse(userStr)) : anonUser;
       }
 
-      const res = await secureFetch('/auth/me');
-      if (!res || !res.ok) {
-        return null;
+      try {
+        const res = await secureFetch('/auth/me');
+        if (!res || !res.ok) {
+          return anonUser;
+        }
+        const data = await res.json();
+        return normalizeUser(data.user) || anonUser;
+      } catch {
+        return anonUser;
       }
-      const data = await res.json();
-      return normalizeUser(data.user);
     },
 
     async getQuotaStatus() {
+      const defaultQuota = {
+        scans_used_today: 0,
+        daily_scan_limit: 50,
+        scans_remaining_today: 50,
+        scans_used_this_month: 0,
+        monthly_scan_limit: 500,
+        global_daily_calls: 1,
+        global_daily_limit: 2000,
+      };
+
       if (IS_DEMO_MODE) {
-        return {
-          scans_used_today: 3,
-          daily_scan_limit: 20,
-          scans_remaining_today: 17,
-          scans_used_this_month: 25,
-          monthly_scan_limit: 200,
-          global_daily_calls: 42,
-          global_daily_limit: 1000,
-        };
+        return defaultQuota;
       }
 
-      const res = await secureFetch('/auth/me');
-      if (!res || !res.ok) {
-        throw new Error('Unable to retrieve quota details.');
+      try {
+        const res = await secureFetch('/scans/user/quota');
+        if (res && res.ok) {
+          return await res.json();
+        }
+        const meRes = await secureFetch('/auth/me');
+        if (meRes && meRes.ok) {
+          const meData = await meRes.json();
+          return meData.quota || defaultQuota;
+        }
+      } catch {
+        // Fallback gracefully
       }
-      const data = await res.json();
-      return data.quota;
+      return defaultQuota;
     },
 
     async logout() {
@@ -570,6 +608,78 @@ export const api = {
       }
 
       return await res.json();
+    }
+  },
+
+  barcode: {
+    async lookup(barcode) {
+      if (!barcode || !barcode.trim()) {
+        throw new Error('Please enter a valid numeric barcode.');
+      }
+      const cleanCode = barcode.trim().replace(/[^0-9]/g, '');
+      if (!cleanCode) {
+        throw new Error('Barcode must contain numbers.');
+      }
+      try {
+        const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${cleanCode}.json`);
+        if (!res.ok) {
+          return {
+            found: false,
+            barcode: cleanCode,
+            message: `Registry response: HTTP ${res.status}`,
+          };
+        }
+        const data = await res.json();
+        if (data.status === 1 && data.product) {
+          const p = data.product;
+          const nutriments = p.nutriments || {};
+          
+          return {
+            found: true,
+            barcode: cleanCode,
+            productName: p.product_name || p.product_name_en || p.generic_name || 'Packaged Food Product',
+            brand: p.brands || '',
+            category: (p.categories_tags?.[0] ? p.categories_tags[0].replace(/^[a-z]{2}:/, '').replace(/-/g, ' ') : (p.categories || 'Packaged Food')),
+            quantity: p.quantity || p.net_weight || null,
+            imageUrl: p.image_front_url || p.image_url || null,
+            ingredientsText: p.ingredients_text || p.ingredients_text_en || '',
+            ingredients: (p.ingredients || []).map(i => i.text || i.id).filter(Boolean),
+            nutritionalData: {
+              energyKcal: nutriments['energy-kcal_100g'] ?? nutriments['energy-kcal'] ?? null,
+              proteinG: nutriments['proteins_100g'] ?? nutriments['proteins'] ?? null,
+              carbohydratesG: nutriments['carbohydrates_100g'] ?? nutriments['carbohydrates'] ?? null,
+              totalSugarG: nutriments['sugars_100g'] ?? nutriments['sugars'] ?? null,
+              addedSugarG: nutriments['added-sugars_100g'] ?? null,
+              fatG: nutriments['fat_100g'] ?? nutriments['fat'] ?? null,
+              saturatedFatG: nutriments['saturated-fat_100g'] ?? null,
+              transFatG: nutriments['trans-fat_100g'] ?? null,
+              sodiumMg: nutriments['sodium_100g'] != null ? Math.round(nutriments['sodium_100g'] * 1000) : (nutriments['salt_100g'] != null ? Math.round(nutriments['salt_100g'] * 400) : null),
+              servingSize: p.serving_size || 'Per 100g',
+            },
+            fssaiNumber: (p.emb_codes_tags || []).find(t => /^[0-9]{14}$/.test(t)) || null,
+            vegNonVegStatus: p.ingredients_analysis_tags?.includes('en:non-vegan') || p.ingredients_analysis_tags?.includes('en:non-vegetarian')
+              ? 'NON_VEGETARIAN'
+              : (p.ingredients_analysis_tags?.includes('en:vegan') || p.ingredients_analysis_tags?.includes('en:vegetarian')
+                ? 'VEGETARIAN'
+                : 'UNCONFIRMED'),
+            source: 'Open Food Facts Global Registry',
+          };
+        } else {
+          return {
+            found: false,
+            barcode: cleanCode,
+            message: data.status_verbose || 'Product barcode not found in registry. You can still scan front & back package photos.',
+          };
+        }
+      } catch (err) {
+        console.warn('Barcode lookup network error:', err);
+        return {
+          found: false,
+          barcode: cleanCode,
+          message: 'Unable to query product registry. You can still scan front & back package photos.',
+          error: err.message,
+        };
+      }
     }
   },
 

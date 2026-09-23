@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useScan } from '../context/ScanContext';
-import { isFoodClassification } from '../services/api';
+import { isFoodClassification, getAnonymousSessionId } from '../services/api';
 import { ResponsiveContainer } from '../components/layout/ResponsiveContainer';
 import { MultiImageUploader } from '../components/scanner/MultiImageUploader';
 import { ScanProgress } from '../components/scanner/ScanProgress';
@@ -27,19 +27,23 @@ export function ScannerPage() {
     currentStepText, 
     activeResult, 
     clearAllImages, 
-    error 
+    error,
+    setError
   } = useScan();
   const navigate = useNavigate();
+  const [runtimeError, setRuntimeError] = useState(null);
 
   const handleStartScan = async () => {
-    if (!user) return;
+    setRuntimeError(null);
+    const effectiveUserId = user?.id || getAnonymousSessionId();
     try {
-      const result = await executeScan(user.id);
+      const result = await executeScan(effectiveUserId);
       if (result && isFoodClassification(result.food_classification)) {
         navigate(`/reports/${result.scan_id}`);
       }
     } catch (err) {
       console.error('Scan execution error:', err);
+      setRuntimeError('Scanning service is temporarily unavailable. Please try again.');
     }
   };
 
@@ -60,19 +64,22 @@ export function ScannerPage() {
         </div>
 
         {/* Global Error Banner */}
-        {error && (
+        {(runtimeError || error) && (
           <div className="p-4 rounded-2xl bg-[#FBEBEB] border border-[#B94A48]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#B94A48]">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
               <div className="space-y-1 text-left">
-                <p className="font-bold">Scan Execution Issue</p>
-                <p>{error}</p>
+                <p className="font-bold">Scan Service Notice</p>
+                <p>{runtimeError || error || 'Scanning service is temporarily unavailable. Please try again.'}</p>
               </div>
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={clearAllImages}
+              onClick={() => {
+                setRuntimeError(null);
+                clearAllImages();
+              }}
               icon={RotateCcw}
               className="shrink-0 text-xs text-[#B94A48] border-[#B94A48]/30"
             >

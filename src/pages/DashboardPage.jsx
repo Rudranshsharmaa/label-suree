@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
+import { api, getAnonymousSessionId } from '../services/api';
 import { ResponsiveContainer } from '../components/layout/ResponsiveContainer';
 import { Button } from '../components/common/Button';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -26,13 +26,14 @@ export function DashboardPage() {
 
   useEffect(() => {
     async function loadDashboardData() {
-      if (!user) return;
+      const effectiveUserId = user?.id || getAnonymousSessionId();
       try {
         setLoading(true);
-        const userScans = await api.scans.getUserScans(user.id);
-        setScans(userScans);
+        const userScans = await api.scans.getUserScans(effectiveUserId);
+        setScans(userScans || []);
       } catch (err) {
-        console.error('Failed to load user scans:', err);
+        console.warn('Failed to load user scans:', err);
+        setScans([]);
       } finally {
         setLoading(false);
       }

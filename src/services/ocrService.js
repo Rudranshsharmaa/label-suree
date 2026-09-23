@@ -4,16 +4,8 @@
  */
 
 export const PACKAGING_VIEWS = [
-  { id: 'front', label: 'Front Packaging', description: 'Brand, product name, net quantity, veg/non-veg logo' },
-  { id: 'back', label: 'Back Packaging', description: 'Ingredients, nutritional table, manufacturer, FSSAI lic.' },
-  { id: 'left', label: 'Left Side', description: 'Storage instructions, batch details, consumer care' },
-  { id: 'right', label: 'Right Side', description: 'Certifications, barcodes, recycling symbols' },
-  { id: 'top', label: 'Top Lid / Cap', description: 'Seal integrity, branding' },
-  { id: 'bottom', label: 'Bottom Base', description: 'Manufacturing code, container markings' },
-  { id: 'mrp_close', label: 'MRP Close-Up', description: 'Clear focus on price and taxes declaration' },
-  { id: 'date_close', label: 'Date / Expiry Close-Up', description: 'MFD, PKD, Expiry or Best Before date close-up' },
-  { id: 'ingredients_close', label: 'Ingredients Close-Up', description: 'High-res view of full ingredient listing' },
-  { id: 'nutrition_close', label: 'Nutrition Label Close-Up', description: 'Nutritional facts table per 100g / serve' },
+  { id: 'front', label: 'Front Package Photo', description: 'Product name, brand, net quantity, veg/non-veg logo' },
+  { id: 'back', label: 'Back Package Photo', description: 'Ingredients, nutritional table, manufacturer, MRP, dates, FSSAI lic.' },
 ];
 
 /**

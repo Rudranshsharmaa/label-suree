@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { api, isFoodClassification } from '../services/api';
+import { api, isFoodClassification, getAnonymousSessionId } from '../services/api';
 import { ResponsiveContainer } from '../components/layout/ResponsiveContainer';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { ComplianceCard } from '../components/compliance/ComplianceCard';
@@ -36,11 +36,12 @@ export function ReportPage() {
 
   useEffect(() => {
     async function loadReport() {
-      if (!user || !id) return;
+      if (!id) return;
+      const effectiveUserId = user?.id || getAnonymousSessionId();
       try {
         setLoading(true);
         setError(null);
-        const data = await api.scans.getScanById(id, user.id);
+        const data = await api.scans.getScanById(id, effectiveUserId);
         setScan(data);
       } catch (err) {
         setError(err.message || 'Unable to load report.');
