@@ -14,7 +14,6 @@ import {
   PackageCheck,
   Barcode,
   Image as ImageIcon,
-  HelpCircle,
   FileCheck2,
   X
 } from 'lucide-react';
@@ -43,6 +42,7 @@ export function MultiImageUploader({ onStartScan }) {
   const frontImage = uploadedImages['front'];
   const backImage = uploadedImages['back'];
   const hasBothPhotos = !!(frontImage && backImage);
+  const hasAtLeastOnePhoto = !!(frontImage || backImage);
 
   const handleFileChange = (viewId, event) => {
     const file = event.target.files?.[0];
@@ -75,7 +75,7 @@ export function MultiImageUploader({ onStartScan }) {
     if (productData.category) {
       setProductCategory(productData.category);
     }
-    // If front or back image URL exists, optionally attach
+    // If front or back image URL exists, attach
     if (productData.imageUrl && !frontImage) {
       addImage(
         'front',
@@ -91,15 +91,15 @@ export function MultiImageUploader({ onStartScan }) {
         'back',
         null,
         productData.imageUrl || 'https://images.unsplash.com/photo-1608686207856-001b95cf60ca?auto=format&fit=crop&w=400&q=80',
-        `Ingredients: ${productData.ingredientsText || productData.ingredients.join(', ')} ${nutSummary} FSSAI: ${productData.fssaiNumber || '10019022009876'} MRP: Rs. 150.00 MFD: 15/08/2026 Best Before: 12 months`
+        `Ingredients: ${productData.ingredientsText || (productData.ingredients && productData.ingredients.join(', ')) || ''} ${nutSummary} FSSAI: ${productData.fssaiNumber || '10019022009876'}`
       );
     }
     setShowBarcodeModal(false);
   };
 
   const handleScanSubmit = () => {
-    if (!frontImage || !backImage) {
-      setValidationError('Please upload both front and back package photos for complete product analysis.');
+    if (!hasAtLeastOnePhoto) {
+      setValidationError('Please upload at least one packaging photo (Front or Back) or scan a barcode to begin.');
       return;
     }
     setValidationError(null);
@@ -130,7 +130,7 @@ export function MultiImageUploader({ onStartScan }) {
               Product Packaging Scanner
             </h2>
             <p className="text-xs text-[#68736B] mt-0.5">
-              Follow our standard 3-step inspection: upload Front and Back photos, or scan barcode to retrieve registry data.
+              Upload Front and Back packaging photos, or scan barcode to retrieve verified registry specifications.
             </p>
           </div>
 
@@ -201,7 +201,7 @@ export function MultiImageUploader({ onStartScan }) {
         <div className="p-4 rounded-2xl bg-[#FBEBEB] border border-[#B94A48]/30 flex items-start gap-3 text-xs text-[#B94A48] animate-in fade-in">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="space-y-0.5">
-            <p className="font-bold">Missing Required Packaging Photo</p>
+            <p className="font-bold">Packaging Upload Notice</p>
             <p>{validationError}</p>
           </div>
         </div>
@@ -228,8 +228,8 @@ export function MultiImageUploader({ onStartScan }) {
                   <CheckCircle2 className="w-3.5 h-3.5" /> Ready
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded-full bg-[#FEF6E8] text-[#C78A28] text-[10px] font-bold">
-                  Required
+                <span className="px-2 py-0.5 rounded-full bg-[#E9E8DC] text-[#17231C] text-[10px] font-bold">
+                  Recommended
                 </span>
               )}
             </div>
@@ -325,8 +325,8 @@ export function MultiImageUploader({ onStartScan }) {
                   <CheckCircle2 className="w-3.5 h-3.5" /> Ready
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded-full bg-[#FEF6E8] text-[#C78A28] text-[10px] font-bold">
-                  Required
+                <span className="px-2 py-0.5 rounded-full bg-[#E9E8DC] text-[#17231C] text-[10px] font-bold">
+                  Recommended
                 </span>
               )}
             </div>
@@ -334,7 +334,7 @@ export function MultiImageUploader({ onStartScan }) {
             <div>
               <h3 className="text-base font-bold text-[#17231C]">Back of Package</h3>
               <p className="text-xs text-[#68736B] mt-1 leading-relaxed">
-                Captures Ingredients, Nutritional Facts table, 14-digit FSSAI number, MRP, Dates & Manufacturer.
+                Captures Ingredients list, Nutritional Facts table, 14-digit FSSAI number, and Manufacturer details.
               </p>
             </div>
 
@@ -459,12 +459,14 @@ export function MultiImageUploader({ onStartScan }) {
           <p className="text-xs text-[#DCE8D8]/80 max-w-xl">
             {hasBothPhotos
               ? 'Both front and back package photos are ready. Click below to start full OCR extraction, compliance evaluation, and health grading.'
-              : 'Please upload both front and back package photos for complete product analysis.'}
+              : (hasAtLeastOnePhoto 
+                ? 'Packaging photo ready. For maximum statutory completeness, upload both Front & Back photos.'
+                : 'Upload package photos or scan barcode above to run analysis.')}
           </p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
-          {(frontImage || backImage) && (
+          {hasAtLeastOnePhoto && (
             <button
               type="button"
               onClick={clearAllImages}
@@ -479,11 +481,9 @@ export function MultiImageUploader({ onStartScan }) {
             variant="secondary"
             onClick={handleScanSubmit}
             icon={Sparkles}
-            className={`w-full sm:w-auto font-black px-8 shadow-lg ${
-              !hasBothPhotos ? 'opacity-90' : ''
-            }`}
+            className="w-full sm:w-auto font-black px-8 shadow-lg"
           >
-            Run Complete Product Scan
+            {hasBothPhotos ? 'Run Complete Product Scan' : 'Run Packaging Scan'}
           </Button>
         </div>
       </div>

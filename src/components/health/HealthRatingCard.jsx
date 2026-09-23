@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Info, HeartPulse, AlertCircle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Sparkles, Info, HeartPulse, AlertCircle, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownRight, ShieldAlert } from 'lucide-react';
 import { HEALTH_DISCLAIMER } from '../../services/healthRatingEngine';
 
 export function HealthRatingCard({ scan }) {
@@ -7,8 +7,11 @@ export function HealthRatingCard({ scan }) {
 
   const isAvailable = scan.health_rating_available;
   const grade = scan.health_rating;
-  const score = scan.health_score;
+  const score = scan.health_score ?? (scan.health_details?.score || 0);
   const details = scan.health_details || {};
+  const positives = details.positives || [];
+  const concerns = details.concerns || [];
+  const whyThisGrade = details.whyThisGrade || scan.health_summary || '';
   const factors = details.factors || [];
 
   if (!isAvailable) {
@@ -51,15 +54,15 @@ export function HealthRatingCard({ scan }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#123C2A]/10">
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider text-[#68736B]">
-            Nutritional Quality
+            Evidence-Based Nutritional Quality
           </span>
           <h3 className="text-base sm:text-lg font-bold text-[#17231C] flex items-center gap-2 mt-0.5">
             <HeartPulse className="w-5 h-5 text-[#123C2A]" />
-            A+ to F Health Rating
+            A+ to F Strict Health Rating
           </h3>
         </div>
         <span className="text-xs text-[#68736B] font-semibold bg-[#E9E8DC] px-2.5 py-1 rounded-full">
-          Documented Profiling Model
+          Standardized Nutritional Index
         </span>
       </div>
 
@@ -74,35 +77,83 @@ export function HealthRatingCard({ scan }) {
             {grade}
           </span>
           <span className="text-xs font-semibold opacity-90">
-            Score: {score} / 100
+            Score: {Math.round(score)} / 100
           </span>
         </div>
 
-        {/* Narrative Summary */}
-        <div className="sm:col-span-2 space-y-2">
-          <h4 className="text-sm font-bold text-[#17231C]">
-            Nutritional Profile Summary
-          </h4>
-          <p className="text-xs sm:text-sm text-[#68736B] leading-relaxed">
-            {scan.health_summary}
-          </p>
+        {/* Narrative Summary & Progress Meter */}
+        <div className="sm:col-span-2 space-y-3">
+          <div className="p-3.5 rounded-2xl bg-white border border-[#123C2A]/10 space-y-1">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#123C2A] flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
+              Nutritional Quality Assessment
+            </h4>
+            <p className="text-xs sm:text-sm font-medium text-[#17231C] leading-relaxed">
+              {whyThisGrade}
+            </p>
+          </div>
 
-          <div className="pt-2">
+          <div>
             <div className="flex justify-between text-[11px] font-bold text-[#17231C] mb-1">
-              <span>Nutrient Quality Index</span>
-              <span>{score}%</span>
+              <span>Nutrient Quality Score</span>
+              <span>{Math.round(score)}%</span>
             </div>
             <div className="w-full h-2.5 bg-[#E9E8DC] rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#123C2A] rounded-full transition-all duration-500"
-                style={{ width: `${score}%` }}
+                style={{ width: `${Math.max(4, Math.min(100, score))}%` }}
               />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Impact Factors Breakdown */}
+      {/* Evidence Breakdown: Positives vs Concerns */}
+      {(positives.length > 0 || concerns.length > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#123C2A]/10">
+          {/* Positive Elements */}
+          <div className="p-4 rounded-2xl bg-[#FAF9F5] border border-[#2E6847]/20 space-y-2">
+            <h4 className="text-xs font-bold text-[#2E6847] uppercase tracking-wider flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-[#2E6847]" />
+              Nutritional Positives ({positives.length})
+            </h4>
+            {positives.length > 0 ? (
+              <ul className="space-y-1.5 text-xs text-[#17231C]">
+                {positives.map((pos, idx) => (
+                  <li key={idx} className="flex items-start gap-1.5">
+                    <span className="text-[#2E6847] font-bold">•</span>
+                    <span>{pos}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-[#68736B] italic">No standout positive nutrient density detected.</p>
+            )}
+          </div>
+
+          {/* Dietary Concerns & Penalties */}
+          <div className="p-4 rounded-2xl bg-[#FAF9F5] border border-[#B94A48]/20 space-y-2">
+            <h4 className="text-xs font-bold text-[#B94A48] uppercase tracking-wider flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4 text-[#B94A48]" />
+              Nutritional Concerns ({concerns.length})
+            </h4>
+            {concerns.length > 0 ? (
+              <ul className="space-y-1.5 text-xs text-[#17231C]">
+                {concerns.map((con, idx) => (
+                  <li key={idx} className="flex items-start gap-1.5">
+                    <span className="text-[#B94A48] font-bold">•</span>
+                    <span>{con}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-[#347A4D] font-medium">No elevated sugar, saturated fat, trans fat, or sodium penalties triggered.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Impact Factors Breakdown if available */}
       {factors.length > 0 && (
         <div className="space-y-2.5 pt-2 border-t border-[#123C2A]/10">
           <h4 className="text-xs font-bold uppercase tracking-wider text-[#68736B]">

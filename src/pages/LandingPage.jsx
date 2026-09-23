@@ -71,7 +71,7 @@ export function LandingPage() {
                 },
                 { 
                   label: 'Multi-View OCR', 
-                  desc: 'Front, back, MRP & dates',
+                  desc: 'Front & back packaging views',
                 },
                 { 
                   label: 'FSS Act 2006', 
@@ -127,7 +127,7 @@ export function LandingPage() {
                 Upload Packaging Views
               </h3>
               <p className="text-xs sm:text-sm text-[#47544C] leading-relaxed">
-                Capture or upload multiple packaging photos: front display, back regulatory panel, ingredients list, MRP, and manufacturing date close-ups.
+                Capture or upload packaging photos: front display, back regulatory panel, ingredients list, and nutritional facts.
               </p>
             </div>
 
@@ -140,7 +140,7 @@ export function LandingPage() {
                 Automated OCR & Field Parsing
               </h3>
               <p className="text-xs sm:text-sm text-[#47544C] leading-relaxed">
-                Optical text extraction parses FSSAI numbers, Veg/Non-Veg indicators, MFD/PKD dates, Expiry terms, MRP, Net Quantity, and nutritional tables.
+                Optical text extraction parses FSSAI numbers, Veg/Non-Veg indicators, Net Quantity, Ingredients, and nutritional tables.
               </p>
             </div>
 
@@ -153,7 +153,7 @@ export function LandingPage() {
                 Compliance & Health Audit
               </h3>
               <p className="text-xs sm:text-sm text-[#47544C] leading-relaxed">
-                Inspect 5-way statutory findings (FSS Act 2006, Legal Metrology) alongside an independent A+ to F nutritional grade with exportable PDF reports.
+                Inspect statutory findings (FSS Act 2006, Legal Metrology) alongside an independent A+ to F nutritional grade with exportable PDF reports.
               </p>
             </div>
           </div>
@@ -216,11 +216,11 @@ export function LandingPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-[#26693E] shrink-0 mt-0.5" aria-hidden="true" />
-                  <span><strong>Nuanced 5-Way Statuses:</strong> Compliant, Confirmed Missing, Unreadable, View Not Provided, and Not Applicable.</span>
+                  <span><strong>Nuanced Status Tracking:</strong> Compliant, Requires Review, and Not Applicable.</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-[#26693E] shrink-0 mt-0.5" aria-hidden="true" />
-                  <span><strong>Decoupled QR Protocol:</strong> Inspects physical container OCR without assuming QR holds date/price data.</span>
+                  <span><strong>Verified OCR Protocol:</strong> Inspects physical container declarations directly.</span>
                 </li>
               </ul>
             </div>
@@ -268,7 +268,7 @@ export function LandingPage() {
               Start Auditing Food Packaging Today
             </h2>
             <p className="text-xs sm:text-sm text-[#DCE8D8]/90 max-w-xl mx-auto leading-relaxed">
-              Create an account to scan food packaging, verify mandatory statutory declarations, and maintain your 12-month compliance scan history.
+              Scan food packaging, verify mandatory statutory declarations, and maintain your 12-month compliance scan history.
             </p>
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link to="/scanner">

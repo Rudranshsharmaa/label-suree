@@ -18,13 +18,14 @@ import {
   SwitchCamera,
   Play,
   Square,
-  Zap
+  QrCode
 } from 'lucide-react';
 
 export function BarcodeScanner({ onProductFound, onClose }) {
   const [activeMode, setActiveMode] = useState('camera'); // 'camera' | 'upload' | 'manual'
   const [barcodeInput, setBarcodeInput] = useState('');
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraStatus, setCameraStatus] = useState('Idle'); // 'Idle' | 'Scanning...' | 'Code detected' | 'Looking up product...'
   const [cameraError, setCameraError] = useState(null);
   const [availableCameras, setAvailableCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState(null);
@@ -51,12 +52,10 @@ export function BarcodeScanner({ onProductFound, onClose }) {
   // Check native BarcodeDetector support
   const hasNativeBarcodeDetector = typeof window !== 'undefined' && 'BarcodeDetector' in window;
 
-  // Sound / Haptic feedback on successful scan
+  // Sound / Haptic feedback on detection
   const triggerScanFeedback = () => {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      try {
-        navigator.vibrate(80);
-      } catch {}
+      try { navigator.vibrate(80); } catch {}
     }
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -64,7 +63,7 @@ export function BarcodeScanner({ onProductFound, onClose }) {
       const gain = audioCtx.createGain();
       osc.connect(gain);
       gain.connect(audioCtx.destination);
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 beep
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
       gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
       osc.start(audioCtx.currentTime);
@@ -72,31 +71,28 @@ export function BarcodeScanner({ onProductFound, onClose }) {
     } catch {}
   };
 
-  // Perform Open Food Facts lookup
-  const handleLookup = useCallback(async (code, format = 'BARCODE') => {
-    if (!code || !code.trim()) {
-      setLookupError('Please enter or scan a valid numeric barcode.');
-      return;
+  // Extract pure numeric GTIN/EAN from potential QR code payloads (e.g. URLs with GTIN parameters)
+  const extractGtinFromPayload = (rawCode) => {
+    if (!rawCode) return '';
+    const trimmed = rawCode.trim();
+    // 1. Direct numeric barcode (8, 12, 13, 14 digits)
+    if (/^[0-9]{8,14}$/.test(trimmed)) {
+      return trimmed;
     }
-
-    const cleanCode = code.trim().replace(/[^0-9A-Za-z]/g, '');
-    setDetectedCode(cleanCode);
-    setDetectedFormat(format);
-    setLookupError(null);
-    setIsLoadingLookup(true);
-    setBarcodeInput(cleanCode);
-
-    try {
-      const result = await api.barcode.lookup(cleanCode);
-      setLookupResult(result);
-    } catch (err) {
-      setLookupError(err.message || 'Error querying product database.');
-    } finally {
-      setIsLoadingLookup(false);
+    // 2. URL containing GTIN/EAN parameter (e.g., https://example.com/p?gtin=8901030895556)
+    const matchGtinParam = trimmed.match(/(?:gtin|ean|upc|barcode|code)=([0-9]{8,14})/i);
+    if (matchGtinParam) {
+      return matchGtinParam[1];
     }
-  }, []);
+    // 3. GS1 Digital Link path (e.g., /01/08901030895556)
+    const matchGs1 = trimmed.match(/\/01\/([0-9]{8,14})/);
+    if (matchGs1) {
+      return matchGs1[1];
+    }
+    return '';
+  };
 
-  // Safe camera stop
+  // Stop camera tracks cleanly
   const stopCamera = useCallback(async () => {
     if (scanLoopRef.current) {
       cancelAnimationFrame(scanLoopRef.current);
@@ -104,7 +100,8 @@ export function BarcodeScanner({ onProductFound, onClose }) {
     }
     if (streamRef.current) {
       try {
-        streamRef.current.getTracks().forEach(track => {
+        const tracks = streamRef.current.getTracks();
+        tracks.forEach(track => {
           track.stop();
         });
       } catch (err) {
@@ -123,15 +120,62 @@ export function BarcodeScanner({ onProductFound, onClose }) {
       }
       html5QrCodeRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     setIsCameraActive(false);
     setIsTorchOn(false);
     setIsTorchSupported(false);
     isDecodingRef.current = false;
+    setCameraStatus('Idle');
   }, []);
 
-  // Native BarcodeDetector continuous loop
+  // Perform Open Food Facts lookup with strict QR/barcode validation
+  const handleLookup = useCallback(async (code, format = 'BARCODE') => {
+    if (!code || !code.trim()) {
+      setLookupError('Please enter or scan a valid barcode.');
+      return;
+    }
+
+    const cleanCode = code.trim();
+    const extractedGtin = extractGtinFromPayload(cleanCode);
+
+    setDetectedCode(cleanCode);
+    setDetectedFormat(format);
+    setLookupError(null);
+    setIsLoadingLookup(true);
+    setCameraStatus('Looking up product...');
+
+    // If QR code contains an arbitrary non-product URL/text with no GTIN, inform user honestly
+    if (!extractedGtin && !/^[0-9]{8,14}$/.test(cleanCode)) {
+      setIsLoadingLookup(false);
+      setCameraStatus('Idle');
+      setLookupResult({
+        found: false,
+        barcode: cleanCode,
+        isNonProductQr: true,
+        message: 'Product information could not be verified from this code. Please continue by uploading front and back package photos for OCR analysis.',
+      });
+      return;
+    }
+
+    const lookupQuery = extractedGtin || cleanCode;
+    setBarcodeInput(lookupQuery);
+
+    try {
+      const result = await api.barcode.lookup(lookupQuery);
+      setLookupResult(result);
+    } catch (err) {
+      setLookupError(err.message || 'Error querying product database.');
+    } finally {
+      setIsLoadingLookup(false);
+      setCameraStatus('Idle');
+    }
+  }, []);
+
+  // Native BarcodeDetector loop
   const runNativeDetectionLoop = useCallback(() => {
-    if (!videoRef.current || !nativeDetectorRef.current || !isCameraActive) return;
+    if (!videoRef.current || !nativeDetectorRef.current) return;
 
     const detectFrame = async () => {
       if (!videoRef.current || videoRef.current.readyState < 2 || isDecodingRef.current) {
@@ -140,7 +184,6 @@ export function BarcodeScanner({ onProductFound, onClose }) {
       }
 
       const now = Date.now();
-      // Throttle scanning to every 150ms
       if (now - lastScannedTimeRef.current < 150) {
         scanLoopRef.current = requestAnimationFrame(detectFrame);
         return;
@@ -152,20 +195,20 @@ export function BarcodeScanner({ onProductFound, onClose }) {
         if (barcodes && barcodes.length > 0) {
           const barcode = barcodes[0];
           const rawValue = barcode.rawValue;
-          const format = barcode.format || 'EAN-13';
+          const format = barcode.format || 'BARCODE';
 
-          // Debounce repeated identical scans within 3 seconds
           if (rawValue && (rawValue !== lastScannedCodeRef.current || now - lastScannedTimeRef.current > 3000)) {
             lastScannedTimeRef.current = now;
             lastScannedCodeRef.current = rawValue;
             triggerScanFeedback();
+            setCameraStatus('Code detected');
             await stopCamera();
             handleLookup(rawValue, format);
             return;
           }
         }
-      } catch (err) {
-        // Frame missed, ignore
+      } catch {
+        // Frame miss
       } finally {
         isDecodingRef.current = false;
       }
@@ -174,11 +217,12 @@ export function BarcodeScanner({ onProductFound, onClose }) {
     };
 
     scanLoopRef.current = requestAnimationFrame(detectFrame);
-  }, [isCameraActive, handleLookup, stopCamera]);
+  }, [handleLookup, stopCamera]);
 
-  // Start Camera
+  // Start Camera cleanly
   const startCamera = useCallback(async (preferredCameraId = null) => {
     setCameraError(null);
+    setCameraStatus('Scanning...');
     await stopCamera();
 
     try {
@@ -188,14 +232,13 @@ export function BarcodeScanner({ onProductFound, onClose }) {
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
         setAvailableCameras(videoDevices);
         if (!preferredCameraId && videoDevices.length > 0) {
-          // Prefer back / environment camera
           const backCam = videoDevices.find(d => /back|rear|environment/i.test(d.label));
           preferredCameraId = backCam ? backCam.deviceId : videoDevices[0].deviceId;
           setSelectedCameraId(preferredCameraId);
         }
       }
 
-      // 2. Check if Native BarcodeDetector is available
+      // 2. Try Native BarcodeDetector
       if (hasNativeBarcodeDetector) {
         try {
           const supportedFormats = await window.BarcodeDetector.getSupportedFormats();
@@ -220,7 +263,6 @@ export function BarcodeScanner({ onProductFound, onClose }) {
             await videoRef.current.play();
           }
 
-          // Check torch capability
           const track = stream.getVideoTracks()[0];
           if (track && track.getCapabilities) {
             const caps = track.getCapabilities();
@@ -231,7 +273,7 @@ export function BarcodeScanner({ onProductFound, onClose }) {
           runNativeDetectionLoop();
           return;
         } catch (nativeErr) {
-          console.warn('Native BarcodeDetector initialization fallback to Html5Qrcode:', nativeErr);
+          console.warn('Native BarcodeDetector fallback to Html5Qrcode:', nativeErr);
         }
       }
 
@@ -258,26 +300,28 @@ export function BarcodeScanner({ onProductFound, onClose }) {
             lastScannedTimeRef.current = now;
             lastScannedCodeRef.current = decodedText;
             triggerScanFeedback();
+            setCameraStatus('Code detected');
             await stopCamera();
-            handleLookup(decodedText, decodedResult?.result?.format?.formatName || 'EAN-13');
+            handleLookup(decodedText, decodedResult?.result?.format?.formatName || 'BARCODE');
           }
         },
-        () => {} // Frame misses
+        () => {}
       );
 
       setIsCameraActive(true);
     } catch (err) {
-      console.error('Camera access error:', err);
+      console.error('Camera startup error:', err);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setCameraError('Camera access denied. Please grant camera permission in your browser or enter the barcode numbers below.');
+        setCameraError('Camera access denied. Please allow camera permissions in your browser or enter the barcode numbers below.');
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        setCameraError('No camera found on this device. You can enter the barcode number manually or upload a photo.');
+        setCameraError('No camera found on this device. You can enter the barcode numbers manually or upload a photo.');
       } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        setCameraError('Camera is currently busy or in use by another app. Please close other camera apps and retry.');
+        setCameraError('Camera is currently busy or in use by another application. Please close other camera apps and retry.');
       } else {
-        setCameraError('Unable to start live camera scanner. Please enter the barcode number manually or upload a photo.');
+        setCameraError('Unable to start live camera. Check camera permissions and try again.');
       }
       setIsCameraActive(false);
+      setCameraStatus('Idle');
     }
   }, [hasNativeBarcodeDetector, runNativeDetectionLoop, stopCamera, handleLookup]);
 
@@ -298,17 +342,27 @@ export function BarcodeScanner({ onProductFound, onClose }) {
     }
   };
 
-  // Switch Camera
+  // Switch Camera safely
   const handleSwitchCamera = async () => {
     if (availableCameras.length <= 1) return;
     const currentIndex = availableCameras.findIndex(c => c.deviceId === selectedCameraId);
     const nextIndex = (currentIndex + 1) % availableCameras.length;
     const nextCameraId = availableCameras[nextIndex].deviceId;
     setSelectedCameraId(nextCameraId);
-    startCamera(nextCameraId);
+    await startCamera(nextCameraId);
   };
 
-  // Lifecycle
+  // Mode changes
+  const handleModeChange = async (mode) => {
+    await stopCamera();
+    setActiveMode(mode);
+    setCameraError(null);
+    if (mode === 'camera') {
+      setTimeout(() => startCamera(), 120);
+    }
+  };
+
+  // Mount / Unmount
   useEffect(() => {
     if (activeMode === 'camera') {
       startCamera();
@@ -320,7 +374,7 @@ export function BarcodeScanner({ onProductFound, onClose }) {
     };
   }, [activeMode]);
 
-  // Barcode photo upload decoder
+  // Barcode photo upload
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -336,7 +390,7 @@ export function BarcodeScanner({ onProductFound, onClose }) {
       await handleLookup(decodedText, 'Image Barcode');
     } catch (err) {
       console.warn('Image barcode decode failed:', err);
-      setLookupError('No sharp barcode detected in this image. Please ensure good lighting and clear black bars, or enter the numbers manually below.');
+      setLookupError('No sharp barcode or QR code detected. Please ensure good lighting and clear bars, or enter numbers manually below.');
       setIsLoadingLookup(false);
     }
   };
@@ -359,11 +413,11 @@ export function BarcodeScanner({ onProductFound, onClose }) {
               <Barcode className="w-5 h-5" />
             </span>
             <h3 className="text-lg font-bold text-[#17231C]">
-              Scan Product Barcode
+              Scan Product Barcode / QR Code
             </h3>
           </div>
           <p className="text-xs text-[#68736B]">
-            Query Open Food Facts global food registry to extract verified product title, brand, ingredients, and nutrition facts.
+            Query Open Food Facts product database to verify product name, brand, ingredients, and nutrition facts.
           </p>
         </div>
 
@@ -385,7 +439,7 @@ export function BarcodeScanner({ onProductFound, onClose }) {
       <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-[#E9E8DC]/80 border border-[#123C2A]/10">
         <button
           type="button"
-          onClick={() => setActiveMode('camera')}
+          onClick={() => handleModeChange('camera')}
           className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
             activeMode === 'camera'
               ? 'bg-white text-[#123C2A] shadow-xs'
@@ -398,7 +452,7 @@ export function BarcodeScanner({ onProductFound, onClose }) {
 
         <button
           type="button"
-          onClick={() => setActiveMode('upload')}
+          onClick={() => handleModeChange('upload')}
           className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
             activeMode === 'upload'
               ? 'bg-white text-[#123C2A] shadow-xs'
@@ -406,12 +460,12 @@ export function BarcodeScanner({ onProductFound, onClose }) {
           }`}
         >
           <Upload className="w-4 h-4" />
-          Upload Barcode Photo
+          Upload Code Photo
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveMode('manual')}
+          onClick={() => handleModeChange('manual')}
           className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
             activeMode === 'manual'
               ? 'bg-white text-[#123C2A] shadow-xs'
@@ -427,7 +481,6 @@ export function BarcodeScanner({ onProductFound, onClose }) {
       {activeMode === 'camera' && (
         <div className="space-y-4">
           <div className="relative rounded-2xl overflow-hidden bg-black/95 aspect-video max-h-[320px] flex items-center justify-center shadow-inner">
-            {/* Native Video Element */}
             {hasNativeBarcodeDetector ? (
               <video
                 ref={videoRef}
@@ -439,17 +492,19 @@ export function BarcodeScanner({ onProductFound, onClose }) {
               <div id="labelsure-barcode-html5-reader" className="w-full h-full" />
             )}
 
-            {/* Scanning Reticle / Laser Overlay */}
+            {/* Scanning Guide / Status Indicator */}
             {isCameraActive && (
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
                 <div className="w-64 h-36 border-2 border-[#2E6847] rounded-xl relative overflow-hidden shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]">
-                  {/* Laser line animation */}
                   <div className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#45B074] to-transparent animate-pulse top-1/2" />
                   <div className="absolute top-1 left-1 w-3 h-3 border-t-2 border-l-2 border-white" />
                   <div className="absolute top-1 right-1 w-3 h-3 border-t-2 border-r-2 border-white" />
                   <div className="absolute bottom-1 left-1 w-3 h-3 border-b-2 border-l-2 border-white" />
                   <div className="absolute bottom-1 right-1 w-3 h-3 border-b-2 border-r-2 border-white" />
                 </div>
+                <span className="mt-3 px-3 py-1 rounded-full bg-black/70 text-white text-[11px] font-semibold tracking-wide">
+                  {cameraStatus}
+                </span>
               </div>
             )}
 
@@ -470,7 +525,7 @@ export function BarcodeScanner({ onProductFound, onClose }) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setActiveMode('manual')}
+                    onClick={() => handleModeChange('manual')}
                     className="text-white border-white/30"
                   >
                     Enter Manually
@@ -508,10 +563,10 @@ export function BarcodeScanner({ onProductFound, onClose }) {
                   type="button"
                   onClick={handleSwitchCamera}
                   className="px-3 py-1.5 rounded-xl bg-[#FAF9F5] border border-[#123C2A]/20 text-[#123C2A] text-xs font-bold flex items-center gap-1.5 hover:bg-[#E9E8DC] transition-colors"
-                  title="Switch between front and rear cameras"
+                  title="Switch between front and back camera"
                 >
                   <SwitchCamera className="w-3.5 h-3.5" />
-                  Flip Camera
+                  Switch Camera
                 </button>
               )}
 
@@ -533,7 +588,7 @@ export function BarcodeScanner({ onProductFound, onClose }) {
             </div>
 
             <span className="text-[11px] text-[#68736B]">
-              Supports EAN-13, EAN-8, UPC-A, Code 128 & QR
+              Supports EAN-13, EAN-8, UPC-A, Code 128 & QR Codes
             </span>
           </div>
         </div>
@@ -558,7 +613,7 @@ export function BarcodeScanner({ onProductFound, onClose }) {
             </div>
             <div>
               <p className="text-sm font-bold text-[#17231C]">
-                Click or drag & drop barcode photo
+                Click or drag & drop barcode/QR photo
               </p>
               <p className="text-xs text-[#68736B] mt-0.5">
                 Ensure black stripes and numeric digits are in sharp focus.
@@ -595,11 +650,10 @@ export function BarcodeScanner({ onProductFound, onClose }) {
               icon={Search}
               className="w-full sm:w-auto font-bold px-6 shrink-0"
             >
-              Lookup Barcode
+              Lookup Product
             </Button>
           </form>
 
-          {/* Quick sample chips */}
           <div className="flex items-center gap-2 flex-wrap pt-1">
             <span className="text-[11px] font-semibold text-[#68736B]">Instant Test:</span>
             {quickSamples.map((s) => (
@@ -624,7 +678,7 @@ export function BarcodeScanner({ onProductFound, onClose }) {
         <div className="p-6 rounded-2xl bg-white border border-[#123C2A]/15 text-center space-y-2">
           <div className="w-8 h-8 border-3 border-[#123C2A] border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-xs font-bold text-[#17231C]">
-            Querying Open Food Facts Product Database...
+            Looking up product in Open Food Facts registry...
           </p>
         </div>
       )}
@@ -640,7 +694,7 @@ export function BarcodeScanner({ onProductFound, onClose }) {
         </div>
       )}
 
-      {/* Result Card */}
+      {/* Result Card (Excludes MRP and Dates) */}
       {lookupResult && (
         <div className="p-5 sm:p-6 rounded-2xl bg-white border-2 border-[#2E6847] space-y-5 shadow-sm animate-in fade-in">
           {lookupResult.found ? (
@@ -675,7 +729,7 @@ export function BarcodeScanner({ onProductFound, onClose }) {
                 )}
               </div>
 
-              {/* Data Provenance & Previews */}
+              {/* Data Provenance: Ingredients & Nutrition Only */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="p-3.5 rounded-xl bg-[#FAF9F5] border border-[#123C2A]/10 space-y-1">
                   <div className="flex items-center justify-between">
@@ -732,17 +786,17 @@ export function BarcodeScanner({ onProductFound, onClose }) {
               <AlertCircle className="w-8 h-8 text-[#C78A28] mx-auto" />
               <div>
                 <h5 className="text-sm font-bold text-[#17231C]">
-                  Barcode #{lookupResult.barcode} Detected
+                  {lookupResult.isNonProductQr ? 'QR Code Scanned' : `Barcode #${lookupResult.barcode} Detected`}
                 </h5>
                 <p className="text-xs text-[#68736B] max-w-md mx-auto mt-1 leading-relaxed">
-                  Barcode detected, but complete product information was not found. Upload clear front and back package images for OCR analysis.
+                  {lookupResult.message || 'Product information could not be verified from this code. Please continue by uploading front and back package photos for OCR analysis.'}
                 </p>
               </div>
               <div className="flex items-center justify-center gap-2 pt-1">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setActiveMode('manual')}
+                  onClick={() => handleModeChange('manual')}
                   icon={RotateCcw}
                 >
                   Try Another Barcode

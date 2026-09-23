@@ -8,11 +8,11 @@ const ScanContext = createContext(null);
 export const SCAN_STEPS = [
   'Validating uploaded packaging images...',
   'Reading text from Front package photo...',
-  'Reading text from Back package photo...',
-  'Extracting statutory declarations (MRP, Dates, FSSAI)...',
-  'Running product classifier...',
-  'Evaluating FSS Act 2006 & Legal Metrology rules...',
-  'Analyzing nutritional facts & dietary quality...',
+  'Reading text from Back package photo (Ingredients & Nutrition)...',
+  'Extracting statutory declarations (FSSAI, Net Qty, Ingredients)...',
+  'Running food vs non-food classifier...',
+  'Evaluating FSS Act 2006 & statutory rules...',
+  'Analyzing nutritional health profile & dietary quality...',
   'Compiling inspection report...'
 ];
 
@@ -79,7 +79,7 @@ export function ScanProvider({ children }) {
         'back',
         null,
         'https://images.unsplash.com/photo-1608686207856-001b95cf60ca?auto=format&fit=crop&w=400&q=80',
-        'Ingredients: Whole Roasted Almonds FSSAI Lic No: 10020011000452 Nutritional Info per 100g: Energy: 579 kcal, Protein: 21.1g, Saturated Fat: 3.8g, Total Sugar: 4.3g, Added Sugar: 0g, Sodium: 12mg, Dietary Fibre: 12.5g MRP: Rs. 380.00 (Incl. of all taxes) MFD: 12/08/2026 Best Before: 9 months from manufacture B.No: NH-ALM-2026 Manufactured by: Harvest Farms Pvt Ltd, Nashik, MH Consumer Care: care@harvestfarms.in'
+        'Ingredients: Whole Roasted Almonds FSSAI Lic No: 10020011000452 Nutritional Info per 100g: Energy: 579 kcal, Protein: 21.1g, Saturated Fat: 3.8g, Total Sugar: 4.3g, Added Sugar: 0g, Sodium: 12mg, Dietary Fibre: 12.5g B.No: NH-ALM-2026 Manufactured by: Harvest Farms Pvt Ltd, Nashik, MH Consumer Care: care@harvestfarms.in'
       );
     } else if (sampleType === 'shampoo_nonfood') {
       setProductNameInput('Herbal Anti-Dandruff Shampoo');
@@ -88,13 +88,13 @@ export function ScanProvider({ children }) {
         'front',
         null,
         'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=400&q=80',
-        'BOTANICA CARE HERBAL ANTI-DANDRUFF SHAMPOO Net Vol: 200ml For External Use Only Ingredients: Sodium Laureth Sulfate, Aqua, Tea Tree Oil, Zinc Pyrithione MRP: Rs. 210.00 Mfd By: Botanica Labs'
+        'BOTANICA CARE HERBAL ANTI-DANDRUFF SHAMPOO Net Vol: 200ml For External Use Only Ingredients: Sodium Laureth Sulfate, Aqua, Tea Tree Oil, Zinc Pyrithione Mfd By: Botanica Labs'
       );
       addImage(
         'back',
         null,
         'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=400&q=80',
-        'Directions: Apply to wet hair. Rinse thoroughly. Keep out of reach of children. Not for human consumption. Batch: B9812 Mfg: 05/2026'
+        'Directions: Apply to wet hair. Rinse thoroughly. Keep out of reach of children. Not for human consumption. Batch: B9812'
       );
     }
   };
@@ -107,8 +107,8 @@ export function ScanProvider({ children }) {
     const frontImg = uploadedImages['front'];
     const backImg = uploadedImages['back'];
 
-    if (!frontImg || !backImg) {
-      throw new Error('Please upload both front and back package photos for complete product analysis.');
+    if (!frontImg && !backImg) {
+      throw new Error('Please upload at least one packaging photo (Front or Back) or scan a barcode.');
     }
 
     setIsScanning(true);
@@ -121,39 +121,47 @@ export function ScanProvider({ children }) {
       setCurrentStepText(SCAN_STEPS[0]);
       await new Promise(r => setTimeout(r, 180));
 
-      // Step 1: OCR Front Image
+      // Step 1: OCR Front Image (if provided)
       setCurrentStepIndex(1);
       setCurrentStepText(SCAN_STEPS[1]);
-      let frontText = frontImg.rawText;
-      if (!frontText && (frontImg.file || frontImg.previewUrl)) {
+      let frontText = frontImg?.rawText || '';
+      if (frontImg && !frontText && (frontImg.file || frontImg.previewUrl)) {
         const ocrFront = await extractTextFromImage(frontImg.file || frontImg.previewUrl);
         frontText = ocrFront.text;
       }
 
-      // Step 2: OCR Back Image
+      // Step 2: OCR Back Image (if provided)
       setCurrentStepIndex(2);
       setCurrentStepText(SCAN_STEPS[2]);
-      let backText = backImg.rawText;
-      if (!backText && (backImg.file || backImg.previewUrl)) {
+      let backText = backImg?.rawText || '';
+      if (backImg && !backText && (backImg.file || backImg.previewUrl)) {
         const ocrBack = await extractTextFromImage(backImg.file || backImg.previewUrl);
         backText = ocrBack.text;
       }
 
       // Prepare Image Results
-      const imageResults = [
-        {
+      const imageResults = [];
+      const uploadedViewKeys = [];
+
+      if (frontImg) {
+        uploadedViewKeys.push('front');
+        imageResults.push({
           view: 'front',
           label: 'Front Package Photo',
           text: frontText || `${productNameInput} Front Package Display`,
           imageUrl: frontImg.previewUrl,
-        },
-        {
+        });
+      }
+
+      if (backImg) {
+        uploadedViewKeys.push('back');
+        imageResults.push({
           view: 'back',
           label: 'Back Package Photo',
           text: backText || `${productNameInput} Back Regulatory & Nutrition Panel`,
           imageUrl: backImg.previewUrl,
-        },
-      ];
+        });
+      }
 
       // Step 3: Parse Declarations
       setCurrentStepIndex(3);
@@ -211,13 +219,13 @@ export function ScanProvider({ children }) {
       // Step 5: Evaluate Statutory Compliance
       setCurrentStepIndex(5);
       setCurrentStepText(SCAN_STEPS[5]);
-      const complianceResult = api.compliance.evaluate(parsedFields, ['front', 'back'], productCategory);
+      const complianceResult = api.compliance.evaluate(parsedFields, uploadedViewKeys, productCategory);
       await new Promise(r => setTimeout(r, 180));
 
       // Step 6: Grade Nutritional Health
       setCurrentStepIndex(6);
       setCurrentStepText(SCAN_STEPS[6]);
-      const healthResult = api.health.grade(parsedFields.nutritionalData);
+      const healthResult = api.health.grade(parsedFields.nutritionalData, parsedFields.ingredientsRaw);
       await new Promise(r => setTimeout(r, 180));
 
       // Step 7: Compile Complete Result
@@ -225,8 +233,8 @@ export function ScanProvider({ children }) {
       setCurrentStepText(SCAN_STEPS[7]);
       const fullScanRecord = {
         scan_id: `SCN-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-        product_name: productNameInput || 'Packaged Food Product',
-        brand: parsedFields.manufacturerInfo ? parsedFields.manufacturerInfo.split(',')[0] : 'Brand Label',
+        product_name: productNameInput || (parsedFields.productName || 'Packaged Food Product'),
+        brand: parsedFields.brand || (parsedFields.manufacturerInfo ? parsedFields.manufacturerInfo.split(',')[0] : 'Brand Label'),
         product_category: productCategory,
         food_classification: classification.status,
         classification_confidence: classification.confidence,
@@ -247,7 +255,7 @@ export function ScanProvider({ children }) {
         health_rating: healthResult.grade,
         health_score: healthResult.score,
         health_rating_available: healthResult.available,
-        health_summary: healthResult.gradeSummary || healthResult.reason,
+        health_summary: healthResult.whyThisGrade || healthResult.gradeSummary || healthResult.reason,
         health_details: healthResult,
         report_id: `REP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
         thumbnail: imageResults[0]?.imageUrl || null,

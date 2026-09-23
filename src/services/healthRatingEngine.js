@@ -1,31 +1,41 @@
 /**
- * Nutritional Profiling & A+ to F Health Grading Engine
- * Evaluates available nutritional parameters to compute an informational health grade.
- * IMPORTANT: This is kept completely separate from statutory legal compliance.
+ * Strict Nutritional Profiling & A+ to F Health Grading Engine
+ * Evaluates verified nutritional parameters and ingredient composition against strict public health benchmarks.
+ * IMPORTANT: Strictly decoupled from statutory regulatory compliance.
  */
 
 export const HEALTH_GRADES = ['A+', 'A', 'B', 'C', 'D', 'E', 'F'];
 
 export const HEALTH_DISCLAIMER = 
-  'This health grade is an automated informational assessment based on extracted nutritional parameters and documented dietary profiling models. It is not an official government rating, not an official FSSAI grading system, and does not constitute medical or clinical dietary advice.';
+  'This health grade is an automated preliminary assessment based on available nutritional facts and ingredient composition. It is not an official government certification, not an FSSAI rating, and does not constitute clinical dietary advice.';
+
+// Ultra-processed / high-concern ingredient patterns
+const CONCERN_INGREDIENTS = [
+  { pattern: /palm\s*(?:oil|fat|kernel)|hydrogenated|partially\s*hydrogenated|trans\s*fat/i, label: 'Contains palm oil or hydrogenated fats' },
+  { pattern: /high\s*fructose|corn\s*syrup|invert\s*sugar|glucose-fructose|maltodextrin|dextrose/i, label: 'Contains refined high-glycemic syrups' },
+  { pattern: /artificial\s*(?:sweetener|colour|flavor|flavour)|aspartame|sucralose|acesulfame|saccharin/i, label: 'Contains artificial additives or intense sweeteners' },
+  { pattern: /monosodium\s*glutamate|\bmsg\b|flavour\s*enhancer/i, label: 'Contains added flavor enhancers / MSG' },
+];
 
 /**
- * Calculates the A+ to F health grade based on nutrient thresholds per 100g / per serve.
+ * Calculates a strict, evidence-based A+ to F health grade based on nutrient thresholds per 100g.
  * @param {Object} nutritionalData - Extracted nutritional facts
- * @returns {Object} Health rating assessment with score, grade, breakdown, and explanation
+ * @param {string} [ingredientsRaw=''] - Extracted raw ingredients text
+ * @returns {Object} Strict health rating assessment with score, grade, positives, concerns, and explanation
  */
-export function calculateHealthGrade(nutritionalData = {}) {
-  // If no nutrition panel or crucial fields are missing, return unavailable
+export function calculateHealthGrade(nutritionalData = {}, ingredientsRaw = '') {
   if (!nutritionalData || !nutritionalData.hasNutritionPanel) {
     return {
       available: false,
       grade: null,
       score: null,
       reason: 'Health rating unavailable: Insufficient nutritional information.',
-      guidance: 'No nutritional panel was detected in the scanned packaging. To receive a health grade, please scan a clear view of the nutrition facts table.',
+      guidance: 'No nutritional panel was detected in the scanned packaging. To receive a health grade, please provide a clear view of the nutrition facts table.',
       disclaimer: HEALTH_DISCLAIMER,
+      positives: [],
+      concerns: ['No nutritional facts panel provided'],
+      whyThisGrade: 'Nutritional information is insufficient to evaluate dietary quality.',
       nutrientsUsed: {},
-      pointsBreakdown: null,
     };
   }
 
@@ -34,13 +44,14 @@ export function calculateHealthGrade(nutritionalData = {}) {
     totalSugarG,
     addedSugarG,
     saturatedFatG,
+    transFatG,
     sodiumMg,
     proteinG,
     dietaryFibreG,
     servingSize,
   } = nutritionalData;
 
-  // We require at least 2 key macronutrients (e.g. Energy and Sugar/Fat/Sodium) to avoid hallucinating a score
+  // Require at least 2 key macronutrients to avoid blind guessing
   const availableKeyFields = [energyKcal, totalSugarG, saturatedFatG, sodiumMg].filter(v => v !== null && v !== undefined);
   if (availableKeyFields.length < 2) {
     return {
@@ -48,147 +59,197 @@ export function calculateHealthGrade(nutritionalData = {}) {
       grade: null,
       score: null,
       reason: 'Health rating unavailable: Insufficient nutritional information.',
-      guidance: 'Key macronutrient values (such as calories, sugars, saturated fats, or sodium) could not be extracted confidently.',
+      guidance: 'Essential macronutrient values (calories, sugars, saturated fats, or sodium) could not be extracted with sufficient confidence.',
       disclaimer: HEALTH_DISCLAIMER,
+      positives: [],
+      concerns: ['Essential macronutrient data missing'],
+      whyThisGrade: 'Insufficient nutritional facts to generate a reliable health grade.',
       nutrientsUsed: nutritionalData,
-      pointsBreakdown: null,
     };
   }
 
-  // --- Profiling Algorithm (Transparent 100-point scale adapted from dietary health models) ---
-  // Starts at baseline of 70 points
-  let score = 70;
-  const factors = [];
+  // --- Strict Multi-Factor Scoring (Baseline 50 points) ---
+  let score = 50;
+  const positives = [];
+  const concerns = [];
+  let maxGradeCap = 'A+'; // Enforces caps when negative factors are high
 
-  // 1. Sugars Assessment
-  const sugarValue = addedSugarG !== null ? addedSugarG : totalSugarG;
-  if (sugarValue !== null) {
-    if (sugarValue > 25) {
+  const capGradeTo = (cap) => {
+    const order = ['A+', 'A', 'B', 'C', 'D', 'E', 'F'];
+    if (order.indexOf(cap) > order.indexOf(maxGradeCap)) {
+      maxGradeCap = cap;
+    }
+  };
+
+  // 1. Sugars (Strict WHO / Dietary Guidelines threshold per 100g)
+  const sugarVal = addedSugarG !== null ? addedSugarG : totalSugarG;
+  if (sugarVal !== null) {
+    if (sugarVal > 35) {
+      score -= 35;
+      concerns.push(`Excessive sugar (${sugarVal}g/100g)`);
+      capGradeTo('D');
+    } else if (sugarVal > 22) {
       score -= 25;
-      factors.push({ name: 'Very High Sugar', impact: -25, detail: `${sugarValue}g sugars per 100g exceeds recommended threshold (>25g)` });
-    } else if (sugarValue > 12.5) {
-      score -= 15;
-      factors.push({ name: 'High Sugar', impact: -15, detail: `${sugarValue}g sugars per 100g is moderate-to-high` });
-    } else if (sugarValue > 5) {
-      score -= 5;
-      factors.push({ name: 'Moderate Sugar', impact: -5, detail: `${sugarValue}g sugars per 100g` });
+      concerns.push(`High sugar content (${sugarVal}g/100g)`);
+      capGradeTo('C');
+    } else if (sugarVal > 10) {
+      score -= 12;
+      concerns.push(`Moderate sugar (${sugarVal}g/100g)`);
+      capGradeTo('B');
+    } else if (sugarVal > 5) {
+      score -= 4;
     } else {
-      score += 5;
-      factors.push({ name: 'Low Sugar', impact: +5, detail: `Low sugar content (${sugarValue}g per 100g)` });
+      score += 10;
+      positives.push(`Low sugar (${sugarVal}g/100g)`);
     }
   }
 
-  // 2. Saturated Fat Assessment
+  // 2. Saturated Fat (Threshold per 100g)
   if (saturatedFatG !== null) {
-    if (saturatedFatG > 10) {
-      score -= 20;
-      factors.push({ name: 'Very High Saturated Fat', impact: -20, detail: `${saturatedFatG}g saturated fat per 100g exceeds recommended limits (>10g)` });
-    } else if (saturatedFatG > 4) {
-      score -= 10;
-      factors.push({ name: 'Moderate Saturated Fat', impact: -10, detail: `${saturatedFatG}g saturated fat per 100g` });
+    if (saturatedFatG > 12) {
+      score -= 30;
+      concerns.push(`High saturated fat (${saturatedFatG}g/100g)`);
+      capGradeTo('D');
+    } else if (saturatedFatG > 5) {
+      score -= 18;
+      concerns.push(`Elevated saturated fat (${saturatedFatG}g/100g)`);
+      capGradeTo('C');
+    } else if (saturatedFatG > 2) {
+      score -= 8;
+      concerns.push(`Moderate saturated fat (${saturatedFatG}g/100g)`);
+      capGradeTo('B');
     } else {
-      score += 5;
-      factors.push({ name: 'Low Saturated Fat', impact: +5, detail: `Low saturated fat (${saturatedFatG}g per 100g)` });
+      score += 8;
+      positives.push(`Low saturated fat (${saturatedFatG}g/100g)`);
     }
   }
 
-  // 3. Sodium / Salt Assessment
+  // 3. Trans Fat (Strict Zero Tolerance)
+  if (transFatG !== null && transFatG > 0.2) {
+    score -= 30;
+    concerns.push(`Contains trans fats (${transFatG}g/100g)`);
+    capGradeTo('E');
+  }
+
+  // 4. Sodium / Salt (Threshold per 100g)
   if (sodiumMg !== null) {
     if (sodiumMg > 900) {
-      score -= 20;
-      factors.push({ name: 'High Sodium', impact: -20, detail: `${sodiumMg}mg sodium per 100g exceeds high sodium mark (>900mg)` });
-    } else if (sodiumMg > 400) {
-      score -= 10;
-      factors.push({ name: 'Moderate Sodium', impact: -10, detail: `${sodiumMg}mg sodium per 100g` });
+      score -= 25;
+      concerns.push(`High sodium (${sodiumMg}mg/100g)`);
+      capGradeTo('D');
+    } else if (sodiumMg > 500) {
+      score -= 15;
+      concerns.push(`Elevated sodium (${sodiumMg}mg/100g)`);
+      capGradeTo('C');
+    } else if (sodiumMg > 250) {
+      score -= 6;
+      concerns.push(`Moderate sodium (${sodiumMg}mg/100g)`);
+      capGradeTo('B');
     } else {
-      score += 5;
-      factors.push({ name: 'Low Sodium', impact: +5, detail: `Low sodium content (${sodiumMg}mg per 100g)` });
+      score += 8;
+      positives.push(`Low sodium (${sodiumMg}mg/100g)`);
     }
   }
 
-  // 4. Energy Density (Calories)
+  // 5. Energy Density (Calories)
   if (energyKcal !== null) {
-    if (energyKcal > 450) {
-      score -= 10;
-      factors.push({ name: 'High Energy Density', impact: -10, detail: `${energyKcal} kcal per 100g is calorically dense` });
+    if (energyKcal > 480) {
+      score -= 12;
+      concerns.push(`High caloric density (${energyKcal} kcal/100g)`);
+    } else if (energyKcal > 350) {
+      score -= 6;
     } else if (energyKcal < 200) {
-      score += 5;
-      factors.push({ name: 'Low Energy Density', impact: +5, detail: `Moderate/low caloric density (${energyKcal} kcal)` });
+      score += 6;
+      positives.push(`Low caloric density (${energyKcal} kcal/100g)`);
     }
   }
 
-  // 5. Positive Nutrients: Protein
+  // 6. Positive Factor: Protein
   if (proteinG !== null) {
-    if (proteinG >= 10) {
+    if (proteinG >= 15) {
       score += 15;
-      factors.push({ name: 'Rich in Protein', impact: +15, detail: `High protein content (${proteinG}g per 100g)` });
-    } else if (proteinG >= 5) {
+      positives.push(`Rich in protein (${proteinG}g/100g)`);
+    } else if (proteinG >= 8) {
       score += 8;
-      factors.push({ name: 'Source of Protein', impact: +8, detail: `Moderate protein content (${proteinG}g per 100g)` });
+      positives.push(`Good source of protein (${proteinG}g/100g)`);
     }
   }
 
-  // 6. Positive Nutrients: Dietary Fibre
+  // 7. Positive Factor: Dietary Fibre
   if (dietaryFibreG !== null) {
-    if (dietaryFibreG >= 6) {
+    if (dietaryFibreG >= 7) {
       score += 15;
-      factors.push({ name: 'High Dietary Fibre', impact: +15, detail: `Excellent fibre content (${dietaryFibreG}g per 100g)` });
-    } else if (dietaryFibreG >= 3) {
+      positives.push(`High dietary fibre (${dietaryFibreG}g/100g)`);
+    } else if (dietaryFibreG >= 3.5) {
       score += 8;
-      factors.push({ name: 'Source of Dietary Fibre', impact: +8, detail: `Good fibre content (${dietaryFibreG}g per 100g)` });
+      positives.push(`Source of dietary fibre (${dietaryFibreG}g/100g)`);
     }
   }
 
-  // Bound score between 0 and 100
+  // 8. Ingredient Quality Analysis
+  if (ingredientsRaw && typeof ingredientsRaw === 'string') {
+    CONCERN_INGREDIENTS.forEach(ci => {
+      if (ci.pattern.test(ingredientsRaw)) {
+        score -= 10;
+        concerns.push(ci.label);
+        capGradeTo('C');
+      }
+    });
+
+    if (/^([a-z\s]+)(?:100%|whole|roasted|organic|raw)\b/i.test(ingredientsRaw) && !/sugar|syrup|oil|fat|flavour/i.test(ingredientsRaw)) {
+      score += 10;
+      positives.push('Clean whole-food ingredient composition');
+    }
+  }
+
+  // Clamp score between 0 and 100
   score = Math.max(0, Math.min(100, score));
 
-  // Map score to Grade
-  let grade = 'C';
-  let gradeSummary = '';
-  let colorTheme = 'amber';
+  // Determine Grade with strict thresholds
+  let calculatedGrade = 'F';
+  if (score >= 92) calculatedGrade = 'A+';
+  else if (score >= 80) calculatedGrade = 'A';
+  else if (score >= 65) calculatedGrade = 'B';
+  else if (score >= 48) calculatedGrade = 'C';
+  else if (score >= 32) calculatedGrade = 'D';
+  else if (score >= 18) calculatedGrade = 'E';
+  else calculatedGrade = 'F';
 
-  if (score >= 90) {
-    grade = 'A+';
-    gradeSummary = 'Exceptional nutritional profile with very low sugars/fats and high beneficial nutrients.';
-    colorTheme = 'emerald';
-  } else if (score >= 80) {
-    grade = 'A';
-    gradeSummary = 'Wholesome nutritional profile with favorable macronutrient balance.';
-    colorTheme = 'green';
-  } else if (score >= 68) {
-    grade = 'B';
-    gradeSummary = 'Good nutritional profile suitable for regular consumption as part of a balanced diet.';
-    colorTheme = 'teal';
-  } else if (score >= 54) {
-    grade = 'C';
-    gradeSummary = 'Moderate nutritional profile with average sugar, fat, or sodium levels.';
-    colorTheme = 'amber';
-  } else if (score >= 40) {
-    grade = 'D';
-    gradeSummary = 'Sub-optimal nutritional profile due to elevated sugars, saturated fats, or sodium.';
-    colorTheme = 'orange';
-  } else if (score >= 25) {
-    grade = 'E';
-    gradeSummary = 'High in negative nutrients (sugars, saturated fat, or sodium). Recommended for occasional consumption.';
-    colorTheme = 'rose';
+  // Apply maximum grade cap from negative factors
+  const order = ['A+', 'A', 'B', 'C', 'D', 'E', 'F'];
+  let finalGrade = calculatedGrade;
+  if (order.indexOf(calculatedGrade) < order.indexOf(maxGradeCap)) {
+    finalGrade = maxGradeCap;
+  }
+
+  // Generate dynamic evidence-based explanation
+  let whyThisGrade = '';
+  if (finalGrade === 'A+' || finalGrade === 'A') {
+    whyThisGrade = 'High nutritional quality with wholesome macronutrient balance, minimal sugar, and low saturated fat.';
+  } else if (finalGrade === 'B') {
+    whyThisGrade = 'Generally sound nutritional profile suitable for a balanced diet, with modest sugar or sodium.';
+  } else if (finalGrade === 'C') {
+    whyThisGrade = 'Moderate dietary concerns: elevated sugar, saturated fat, sodium, or refined ingredients offset the positive nutrients.';
+  } else if (finalGrade === 'D') {
+    whyThisGrade = 'High nutritional concern due to significantly elevated sugars, saturated fats, or sodium levels.';
   } else {
-    grade = 'F';
-    gradeSummary = 'Very high concentration of ultra-processed negative nutrients. Minimal positive dietary elements.';
-    colorTheme = 'red';
+    whyThisGrade = 'Very high concentration of negative nutrients (sugars, saturated fats, or sodium) with minimal positive dietary elements.';
   }
 
   return {
     available: true,
-    grade,
+    grade: finalGrade,
     score,
-    gradeSummary,
-    colorTheme,
-    factors,
+    gradeSummary: whyThisGrade,
+    whyThisGrade,
+    positives,
+    concerns,
     nutrientsUsed: {
       energyKcal,
       totalSugarG,
       addedSugarG,
       saturatedFatG,
+      transFatG,
       sodiumMg,
       proteinG,
       dietaryFibreG,

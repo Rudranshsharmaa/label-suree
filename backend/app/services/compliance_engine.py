@@ -18,43 +18,7 @@ def evaluate_compliance(parsed_fields: Dict[str, Any], food_classification: str 
         "observation": "Clear declaration of product identity detected on primary packaging." if has_name else "Product name clarity unconfirmed from current scan views."
     })
 
-    # 2. Maximum Retail Price (MRP)
-    mrp = parsed_fields.get("mrp", {})
-    if mrp.get("value") is not None:
-        mrp_status = "COMPLIANT"
-        mrp_obs = f"MRP declared as {mrp.get('formatted')} (inclusive of all taxes: {mrp.get('inclusiveOfTaxes')})."
-    else:
-        mrp_status = "MISSING"
-        mrp_obs = "MRP declaration not detected in scanned packaging views. Physical packaging must display retail price."
-
-    findings.append({
-        "id": "RULE-MRP-02",
-        "regulation": "Legal Metrology (Packaged Commodities) Rules, 2011 — Rule 6(1)(e)",
-        "parameter": "Maximum Retail Price (MRP)",
-        "status": mrp_status,
-        "severity": "CRITICAL" if mrp_status == "MISSING" else "INFO",
-        "observation": mrp_obs
-    })
-
-    # 3. Expiry / Best Before Date
-    exp = parsed_fields.get("expiryDate", {})
-    if exp.get("raw"):
-        exp_status = "COMPLIANT"
-        exp_obs = f"Expiry / Best Before date declared: {exp.get('raw')}."
-    else:
-        exp_status = "MISSING"
-        exp_obs = "Expiry or Best Before declaration not detected in scanned packaging views."
-
-    findings.append({
-        "id": "RULE-EXP-03",
-        "regulation": "FSS (Labelling and Display) Reg 5(3)(b) & Legal Metrology Rule 6(1)(d)",
-        "parameter": "Date Marking / Expiry / Best Before",
-        "status": exp_status,
-        "severity": "CRITICAL" if exp_status == "MISSING" else "INFO",
-        "observation": exp_obs
-    })
-
-    # 4. Net Quantity
+    # 2. Net Quantity
     net_qty = parsed_fields.get("netQuantity", {})
     if net_qty.get("value"):
         net_status = "COMPLIANT"
@@ -64,7 +28,7 @@ def evaluate_compliance(parsed_fields: Dict[str, Any], food_classification: str 
         net_obs = "Net quantity / weight declaration not identified."
 
     findings.append({
-        "id": "RULE-QTY-04",
+        "id": "RULE-QTY-02",
         "regulation": "Legal Metrology (Packaged Commodities) Rules — Rule 6(1)(b)",
         "parameter": "Net Quantity & Metric Weight",
         "status": net_status,
@@ -72,7 +36,7 @@ def evaluate_compliance(parsed_fields: Dict[str, Any], food_classification: str 
         "observation": net_obs
     })
 
-    # 5. FSSAI 14-Digit License (Category-Dependent)
+    # 3. FSSAI 14-Digit License (Category-Dependent)
     fssai = parsed_fields.get("fssai", {})
     is_non_food = "non-food" in food_classification.lower()
     
@@ -90,7 +54,7 @@ def evaluate_compliance(parsed_fields: Dict[str, Any], food_classification: str 
         fssai_obs = "14-digit FSSAI registration number not detected in scanned views. Manual verification recommended."
 
     findings.append({
-        "id": "RULE-FSSAI-05",
+        "id": "RULE-FSSAI-03",
         "regulation": "Food Safety and Standards (Licensing & Registration) Regulations, 2011",
         "parameter": "FSSAI 14-Digit License / Registration",
         "status": fssai_status,
@@ -98,7 +62,7 @@ def evaluate_compliance(parsed_fields: Dict[str, Any], food_classification: str 
         "observation": fssai_obs
     })
 
-    # 6. Vegetarian / Non-Vegetarian Logo
+    # 4. Vegetarian / Non-Vegetarian Logo
     veg_status = parsed_fields.get("vegNonVegStatus", "UNCONFIRMED")
     if is_non_food:
         v_status = "NOT_APPLICABLE"
@@ -111,7 +75,7 @@ def evaluate_compliance(parsed_fields: Dict[str, Any], food_classification: str 
         v_obs = "Veg / Non-Veg symbol could not be confirmed from scanned images."
 
     findings.append({
-        "id": "RULE-VEG-06",
+        "id": "RULE-VEG-04",
         "regulation": "FSS (Labelling and Display) Reg 5(4) — Veg / Non-Veg Symbol",
         "parameter": "Vegetarian / Non-Vegetarian Declaration",
         "status": v_status,
@@ -119,7 +83,7 @@ def evaluate_compliance(parsed_fields: Dict[str, Any], food_classification: str 
         "observation": v_obs
     })
 
-    # 7. Nutritional Information Table
+    # 5. Nutritional Information Table
     nutrition = parsed_fields.get("nutritionalData", {})
     if is_non_food:
         nut_status = "NOT_APPLICABLE"
@@ -132,7 +96,7 @@ def evaluate_compliance(parsed_fields: Dict[str, Any], food_classification: str 
         nut_obs = "Nutritional facts panel not detected in scanned packaging views."
 
     findings.append({
-        "id": "RULE-NUT-07",
+        "id": "RULE-NUT-05",
         "regulation": "FSS (Labelling and Display) Reg 5(3) — Nutritional Information",
         "parameter": "Nutritional Facts Table (Per 100g / Serving)",
         "status": nut_status,
