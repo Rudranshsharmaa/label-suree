@@ -67,7 +67,7 @@ export function Footer() {
               Compliance & Scope
             </p>
             <ul className="space-y-2 text-xs text-[#F5F3EA]/80">
-              <li>Food-Only Product Detection</li>
+              <li>Automatic Product Classification</li>
               <li>Category-Dependent FSSAI Rules</li>
               <li>OCR & Packaging Evidence Viewer</li>
               <li>Decoupled QR Code Inspection</li>

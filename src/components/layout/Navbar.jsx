@@ -27,19 +27,19 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full bg-[#123C2A] text-[#F5F3EA] shadow-md border-b border-[#0B291D]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-18">
           {/* Brand Logo & Name */}
-          <Link to="/" className="flex items-center gap-3 group focus-visible:outline-white">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#FAF9F5] p-1.5 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+          <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group focus-visible:outline-white shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#FAF9F5] p-1.5 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
               <img src="/logo.svg" alt="LabelSure Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-lg sm:text-xl font-extrabold tracking-tight text-[#F5F3EA]">
+                <span className="text-base sm:text-xl font-extrabold tracking-tight text-[#F5F3EA]">
                   LabelSure
                 </span>
-                <span className="px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider bg-[#DCE8D8] text-[#123C2A] rounded-sm">
+                <span className="px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider bg-[#DCE8D8] text-[#123C2A] rounded-sm">
                   Public
                 </span>
               </div>
@@ -72,15 +72,16 @@ export function Navbar() {
           </nav>
 
           {/* Right Action Area */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <Link to="/scanner">
               <Button
                 size="sm"
                 variant="secondary"
                 icon={Sparkles}
-                className="font-bold shadow-xs hover:bg-[#FAF9F5]"
+                className="font-bold shadow-xs hover:bg-[#FAF9F5] px-2.5 sm:px-3 text-xs"
               >
-                Scan Packaging
+                <span className="hidden xs:inline">Scan Packaging</span>
+                <span className="xs:hidden">Scan</span>
               </Button>
             </Link>
 
@@ -88,10 +89,10 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl text-[#F5F3EA] hover:bg-[#0B291D] focus:outline-none"
+              className="md:hidden p-1.5 sm:p-2 rounded-xl text-[#F5F3EA] hover:bg-[#0B291D] focus:outline-none"
               aria-label="Toggle navigation menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
             </button>
           </div>
         </div>

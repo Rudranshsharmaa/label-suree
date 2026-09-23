@@ -21,31 +21,31 @@ export function LandingPage() {
       <section className="relative overflow-hidden pt-8 sm:pt-16 pb-12 sm:pb-20 border-b border-[#123C2A]/10 subtle-grain" aria-labelledby="hero-heading">
         <ResponsiveContainer>
           <div className="max-w-4xl mx-auto text-center space-y-6">
-            {/* Tag */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#DCE8D8] border border-[#2E6847]/30 text-[#123C2A] text-xs font-bold shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 text-[#2E6847]" aria-hidden="true" />
+            {/* Top Badge */}
+            <div className="inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#DCE8D8] border border-[#2E6847]/30 text-[#123C2A] text-[11px] sm:text-xs font-bold shadow-xs max-w-full text-center leading-[1.35] tracking-tight">
+              <Sparkles className="w-3.5 h-3.5 text-[#2E6847] shrink-0" aria-hidden="true" />
               <span>Intelligent Packaging Compliance & Health Intelligence</span>
             </div>
 
             {/* Main Headline */}
-            <h1 id="hero-heading" className="text-3xl sm:text-5xl lg:text-6xl font-black text-[#17231C] tracking-tight leading-[1.15]">
-              Scan. Verify. <br className="hidden sm:inline" />
-              <span className="text-[#123C2A]">Understand.</span>
+            <h1 id="hero-heading" className="text-[30px] xs:text-[34px] sm:text-5xl lg:text-6xl font-black text-[#17231C] tracking-tight leading-[1.12] sm:leading-[1.15]">
+              Scan. Verify. <span className="text-[#123C2A] block sm:inline">Understand.</span>
             </h1>
 
             {/* Description */}
-            <p className="text-base sm:text-lg text-[#47544C] max-w-2xl mx-auto leading-relaxed">
-              Analyze packaged products and labels using intelligent multi-image scanning, OCR extraction, preliminary regulatory compliance checks (FSS Act 2006, Legal Metrology), and product health analysis where applicable.
+            <p className="text-sm sm:text-base lg:text-lg text-[#47544C] max-w-2xl mx-auto leading-relaxed">
+              Analyze packaged products using multi-image scanning, OCR, barcode verification, applicable compliance checks, and health analysis where nutritional information is available.
             </p>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-2 w-full max-w-md sm:max-w-none mx-auto">
               <Link to="/scanner" className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   variant="primary"
                   icon={ScanLine}
-                  className="w-full sm:w-auto font-extrabold px-8 shadow-md"
+                  fullWidth
+                  className="sm:w-auto font-extrabold px-7 py-3.5 shadow-md whitespace-nowrap min-h-[48px]"
                 >
                   Scan Package Product
                 </Button>
@@ -55,7 +55,8 @@ export function LandingPage() {
                   size="lg"
                   variant="secondary"
                   icon={ShieldCheck}
-                  className="w-full sm:w-auto font-bold px-7"
+                  fullWidth
+                  className="sm:w-auto font-bold px-7 py-3.5 whitespace-nowrap min-h-[48px]"
                 >
                   Compliance Framework
                 </Button>
@@ -63,15 +64,15 @@ export function LandingPage() {
             </div>
 
             {/* Key Capability Highlights / Feature Cards */}
-            <div className="pt-6 sm:pt-8 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5 lg:gap-4 max-w-3xl mx-auto w-full text-left">
+            <div className="pt-6 sm:pt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5 lg:gap-4 max-w-3xl mx-auto w-full text-left">
               {[
                 { 
-                  label: 'Food-Only Classifier', 
-                  desc: 'Automatic non-food gating',
+                  label: 'Product Classifier', 
+                  desc: 'Automatic product classification',
                 },
                 { 
                   label: 'Multi-View OCR', 
-                  desc: 'Front & back packaging views',
+                  desc: 'Front, back, MRP & dates',
                 },
                 { 
                   label: 'FSS Act 2006', 
@@ -84,11 +85,13 @@ export function LandingPage() {
               ].map((item, idx) => (
                 <div 
                   key={idx} 
-                  className="flex items-center gap-3.5 px-4.5 py-3.5 sm:px-5 sm:py-4 rounded-2xl bg-[#EAEFE9] border border-[#2E6847]/20 shadow-xs transition-all duration-200 hover:border-[#2E6847]/40 hover:bg-[#E4ECE3]"
+                  className="flex items-start gap-3 sm:gap-3.5 p-3.5 sm:p-4 rounded-2xl bg-[#EAEFE9] border border-[#2E6847]/20 shadow-xs transition-all duration-200 hover:border-[#2E6847]/40 hover:bg-[#E4ECE3]"
                 >
-                  <Sparkles className="w-5 h-5 text-[#123C2A] shrink-0" aria-hidden="true" />
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#DCE8D8] border border-[#2E6847]/20 flex items-center justify-center shrink-0 mt-0.5">
+                    <Sparkles className="w-4 h-4 text-[#123C2A]" aria-hidden="true" />
+                  </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-sm sm:text-base font-bold text-[#123C2A] tracking-tight leading-tight">
+                    <span className="text-sm sm:text-base font-bold text-[#123C2A] tracking-tight leading-snug">
                       {item.label}
                     </span>
                     <span className="text-xs sm:text-[13px] text-[#47544C] mt-0.5 leading-snug">
@@ -160,20 +163,20 @@ export function LandingPage() {
         </ResponsiveContainer>
       </section>
 
-      {/* Food-Only Platform & Safety Notice */}
-      <section className="bg-[#FAF9F5] py-12 border-y border-[#123C2A]/10" aria-labelledby="food-safety-heading">
+      {/* Product Classification & Safety Notice */}
+      <section className="bg-[#FAF9F5] py-12 border-y border-[#123C2A]/10" aria-labelledby="product-safety-heading">
         <ResponsiveContainer>
           <div className="max-w-4xl mx-auto p-6 sm:p-8 rounded-3xl bg-white border border-[#123C2A]/15 shadow-medium flex flex-col md:flex-row items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-[#FBEBEB] text-[#B94A48] flex items-center justify-center shrink-0">
-              <UtensilsCrossed className="w-8 h-8" aria-hidden="true" />
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#DCE8D8] text-[#123C2A] flex items-center justify-center shrink-0">
+              <UtensilsCrossed className="w-7 h-7 sm:w-8 sm:h-8" aria-hidden="true" />
             </div>
 
             <div className="space-y-2 text-center md:text-left flex-1">
-              <h2 id="food-safety-heading" className="text-base sm:text-lg font-bold text-[#17231C]">
-                Dedicated Exclusively to Packaged Food Products
+              <h2 id="product-safety-heading" className="text-base sm:text-lg font-bold text-[#17231C]">
+                Intelligent Packaged Product Safety & Compliance
               </h2>
               <p className="text-xs sm:text-sm text-[#47544C] leading-relaxed">
-                LabelSure incorporates an intelligent classifier that filters out non-food items (cosmetics, electronics, cleaners, pharmaceuticals). Non-food items immediately halt food compliance checks with clear explanatory guidance.
+                LabelSure incorporates an intelligent classifier that determines product classification (Food vs Non-Food commodities). Non-food commodities receive applicable packaging and regulatory compliance checks while health grading is reserved exclusively for consumable products.
               </p>
             </div>
           </div>

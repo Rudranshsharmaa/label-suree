@@ -42,7 +42,10 @@ export default {
         'xl': '1rem',
         '2xl': '1.25rem',
         '3xl': '1.5rem',
-      }
+      },
+      screens: {
+        'xs': '375px',
+      },
     },
   },
   plugins: [],
